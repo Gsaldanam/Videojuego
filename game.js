@@ -240,21 +240,26 @@ class Platform {
 // CLASE: FireTrap (Trampa de fuego giratorio)
 // ============================================
 class FireTrap {
-    constructor(x, y) {
+    constructor(x, y, options = {}) {
         this.x = x;
         this.y = y;
-        this.radius = 30;
+        this.radius = options.radius || 52;
         this.rotation = 0;
-        this.rotationSpeed = 0.08;
-        this.fireSize = 12;
+        this.rotationSpeed = options.rotationSpeed || 0.055;
+        this.fireSize = options.fireSize || 14;
+        this.segmentSpacing = options.segmentSpacing || 18;
+        this.segmentCount = options.segmentCount || 5;
+        this.arms = options.arms || 2;
         this.flames = [];
-        
-        // Crear llamas alrededor
-        for (let i = 0; i < 4; i++) {
-            this.flames.push({
-                angle: (i * Math.PI / 2),
-                distance: this.radius
-            });
+
+        for (let arm = 0; arm < this.arms; arm++) {
+            const armBase = (arm * Math.PI * 2) / this.arms;
+            for (let i = 1; i <= this.segmentCount; i++) {
+                this.flames.push({
+                    angle: armBase,
+                    distance: i * this.segmentSpacing
+                });
+            }
         }
     }
 
@@ -269,11 +274,24 @@ class FireTrap {
         // Centro del mecanismo
         ctx.fillStyle = '#404040';
         ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.stroke();
+
+        // Brazos metálicos
+        for (let arm = 0; arm < this.arms; arm++) {
+            const armAngle = (arm * Math.PI * 2) / this.arms + this.rotation;
+            const endX = x + Math.cos(armAngle) * (this.segmentCount * this.segmentSpacing);
+            const endY = y + Math.sin(armAngle) * (this.segmentCount * this.segmentSpacing);
+            ctx.strokeStyle = 'rgba(180, 180, 180, 0.4)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        }
 
         // Dibujar llamas giratorias
         for (let flame of this.flames) {
@@ -281,13 +299,13 @@ class FireTrap {
             const fx = x + Math.cos(flameAngle) * flame.distance;
             const fy = y + Math.sin(flameAngle) * flame.distance;
 
-            // Llama naranja
+            // Fuego exterior
             ctx.fillStyle = '#FF6F00';
             ctx.beginPath();
-            ctx.ellipse(fx, fy, this.fireSize * 1.2, this.fireSize * 1.5, flameAngle, 0, Math.PI * 2);
+            ctx.ellipse(fx, fy, this.fireSize * 1.25, this.fireSize * 1.4, flameAngle, 0, Math.PI * 2);
             ctx.fill();
 
-            // Interior amarillo
+            // Núcleo amarillo
             ctx.fillStyle = '#FFD600';
             ctx.beginPath();
             ctx.ellipse(fx, fy, this.fireSize * 0.6, this.fireSize * 0.9, flameAngle, 0, Math.PI * 2);
@@ -825,13 +843,28 @@ class Level {
         this.platforms.push(new Platform(1950, 330, 100, 20, 'normal'));
         this.platforms.push(new Platform(2200, 410, 120, 20, 'normal'));
         this.platforms.push(new Platform(2400, 280, 150, 20, 'normal'));
+        this.platforms.push(new Platform(1620, 500, 180, 20, 'normal'));
 
-        // Monedas dispersas - bien separadas
-        for (let i = 0; i < 16; i++) {
-            const x = 250 + i * 180;
-            const special = i % 3 === 0;
-            this.coins.push(new Coin(x, 350, special));
-        }
+        // Trampa de fuego tipo Mario en ruta media
+        this.fireTraps.push(new FireTrap(1690, 455, { segmentCount: 4, segmentSpacing: 20, fireSize: 13, arms: 2, rotationSpeed: 0.045 }));
+
+        // Monedas en ruta lógica, lejos del eje de la trampa
+        this.coins.push(new Coin(250, 450, true));
+        this.coins.push(new Coin(450, 380, false));
+        this.coins.push(new Coin(700, 440, true));
+        this.coins.push(new Coin(950, 360, false));
+        this.coins.push(new Coin(1200, 420, true));
+        this.coins.push(new Coin(1450, 330, false));
+        this.coins.push(new Coin(1580, 470, true));
+        this.coins.push(new Coin(1810, 390, false));
+        this.coins.push(new Coin(1950, 300, true));
+        this.coins.push(new Coin(2200, 380, false));
+        this.coins.push(new Coin(2400, 250, true));
+        this.coins.push(new Coin(2580, 250, false));
+        this.coins.push(new Coin(1050, 320, false));
+        this.coins.push(new Coin(1320, 320, true));
+        this.coins.push(new Coin(2050, 280, false));
+        this.coins.push(new Coin(2280, 360, true));
 
         // Power-ups EN DIFERENTES POSICIONES que monedas
         this.powerups.push(new PowerUp(450, 380, 'shield'));
@@ -872,15 +905,15 @@ class Level {
         this.platforms.push(new Platform(1150, 450, 100, 20, 'normal'));
 
         // Trampas EN ALTURA PROTEGIDAS
-        this.fireTraps.push(new FireTrap(520, 350));
-        this.fireTraps.push(new FireTrap(1280, 370));
+        this.fireTraps.push(new FireTrap(560, 350, { segmentCount: 4, segmentSpacing: 20, fireSize: 14, arms: 2, rotationSpeed: 0.048 }));
+        this.fireTraps.push(new FireTrap(1320, 370, { segmentCount: 5, segmentSpacing: 18, fireSize: 14, arms: 2, rotationSpeed: 0.05 }));
 
-        // Monedas en lugares seguros
+        // Monedas en lugares seguros (sin cruzar eje de trampa)
         this.coins.push(new Coin(200, 450, true));
-        this.coins.push(new Coin(500, 370, false));
+        this.coins.push(new Coin(460, 300, false));
         this.coins.push(new Coin(700, 420, true));
         this.coins.push(new Coin(950, 320, false));
-        this.coins.push(new Coin(1200, 390, true));
+        this.coins.push(new Coin(1160, 300, true));
         this.coins.push(new Coin(1450, 270, false));
         this.coins.push(new Coin(1700, 350, true));
         this.coins.push(new Coin(1950, 250, false));
