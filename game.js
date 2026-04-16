@@ -23,49 +23,93 @@ let spriteManager;
 class TiledSpriteManager {
     constructor() {
         this.tilesets = {};
+        this.defaultTilesets = {
+            tiles: {
+                tsxPath: 'tileset-tiles.tsx',
+                tileWidth: 18,
+                tileHeight: 18,
+                columns: 20,
+                imageCandidates: [
+                    '../Tilemap/tilemap_packed.png',
+                    './Tilemap/tilemap_packed.png',
+                    'tilemap_packed.png'
+                ]
+            },
+            characters: {
+                tsxPath: 'tileset-characters.tsx',
+                tileWidth: 24,
+                tileHeight: 24,
+                columns: 9,
+                imageCandidates: [
+                    '../Tilemap/tilemap-characters_packed.png',
+                    './Tilemap/tilemap-characters_packed.png',
+                    'tilemap-characters_packed.png'
+                ]
+            }
+        };
         this.loadAll();
     }
 
     async loadAll() {
-        await Promise.all([
-            this.loadTileset('tiles', 'tileset-tiles.tsx'),
-            this.loadTileset('characters', 'tileset-characters.tsx')
-        ]);
+        await Promise.all(Object.entries(this.defaultTilesets).map(([key, config]) => this.loadTileset(key, config)));
     }
 
-    async loadTileset(key, tsxPath) {
+    async loadTileset(key, config) {
+        let metadata = null;
+
         try {
-            const response = await fetch(tsxPath);
-            if (!response.ok) return;
-
-            const xmlText = await response.text();
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(xmlText, 'application/xml');
-            const parserError = xml.querySelector('parsererror');
-            if (parserError) return;
-
-            const tilesetNode = xml.querySelector('tileset');
-            const imageNode = xml.querySelector('image');
-            if (!tilesetNode || !imageNode) return;
-
-            const tileWidth = parseInt(tilesetNode.getAttribute('tilewidth') || '0', 10);
-            const tileHeight = parseInt(tilesetNode.getAttribute('tileheight') || '0', 10);
-            const columns = parseInt(tilesetNode.getAttribute('columns') || '0', 10);
-            const source = imageNode.getAttribute('source') || '';
-            if (!tileWidth || !tileHeight || !columns || !source) return;
-
-            const image = await this.loadImageWithFallbacks(this.getImageCandidates(tsxPath, source));
-            if (!image) return;
-
-            this.tilesets[key] = {
-                image,
-                tileWidth,
-                tileHeight,
-                columns
-            };
+            metadata = await this.readTilesetMetadataFromTsx(config.tsxPath);
         } catch {
-            // Ignorar errores de carga para mantener fallback por formas
+            metadata = null;
         }
+
+        const finalMetadata = metadata || {
+            tileWidth: config.tileWidth,
+            tileHeight: config.tileHeight,
+            columns: config.columns,
+            imageCandidates: config.imageCandidates
+        };
+
+        const image = await this.loadImageWithFallbacks(finalMetadata.imageCandidates);
+        if (!image) {
+            console.warn(`[Sprites] No se pudo cargar tileset "${key}". Rutas probadas:`, finalMetadata.imageCandidates);
+            return;
+        }
+
+        this.tilesets[key] = {
+            image,
+            tileWidth: finalMetadata.tileWidth,
+            tileHeight: finalMetadata.tileHeight,
+            columns: finalMetadata.columns
+        };
+    }
+
+    async readTilesetMetadataFromTsx(tsxPath) {
+        const response = await fetch(tsxPath);
+        if (!response.ok) return null;
+
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(xmlText, 'application/xml');
+        const parserError = xml.querySelector('parsererror');
+        if (parserError) return null;
+
+        const tilesetNode = xml.querySelector('tileset');
+        const imageNode = xml.querySelector('image');
+        if (!tilesetNode || !imageNode) return null;
+
+        const tileWidth = parseInt(tilesetNode.getAttribute('tilewidth') || '0', 10);
+        const tileHeight = parseInt(tilesetNode.getAttribute('tileheight') || '0', 10);
+        const columns = parseInt(tilesetNode.getAttribute('columns') || '0', 10);
+        const source = imageNode.getAttribute('source') || '';
+        if (!tileWidth || !tileHeight || !columns || !source) return null;
+
+        return {
+            tileWidth,
+            tileHeight,
+            columns,
+            imageCandidates: this.getImageCandidates(tsxPath, source)
+        };
     }
 
     getImageCandidates(tsxPath, source) {
@@ -75,6 +119,7 @@ class TiledSpriteManager {
 
         return [...new Set([
             `${tsxDir}${normalized}`,
+            `./${normalized}`,
             normalized,
             fileName
         ].filter(Boolean))];
