@@ -1453,22 +1453,43 @@ class Game {
         this.cameraX = 0;
         this.message = '';
         this.messageTimer = 0;
+        this.lastHudHtml = '';
+        this.lastOverlayState = '';
+        this.lastOverlayScore = -1;
+        this.lastOverlayVolume = -1;
+        this.lastHudKey = '';
+        this.hudFrameThrottle = 0;
+    }
+
+    setState(nextState) {
+        if (this.state === nextState) return;
+        this.state = nextState;
+        this.syncOverlays();
     }
 
     playGame() {
         this.loadLevel(1);
-        this.state = 'playing';
+        this.setState('playing');
     }
 
     loadLevel(levelNumber) {
         this.currentLevel = levelNumber;
         this.level = new Level(levelNumber);
         this.player = new Player();
+        this.cameraX = 0;
+        this.lastHudHtml = '';
+        this.lastHudKey = '';
+        this.hudFrameThrottle = 0;
+
+        if (this.level) {
+            console.log(
+                `[LEVEL ${levelNumber}] static=${this.level.staticPlatforms.length} moving=${this.level.dynamicPlatforms.length} ` +
+                `enemies=${this.level.enemies.length} traps=${this.level.fireTraps.length} coins=${this.level.coins.length} powerups=${this.level.powerups.length} width=${this.level.levelWidth}`
+            );
+        }
     }
 
     update() {
-        this.syncOverlays();
-
         if (this.state !== 'playing') return;
 
         this.player.update(this.level.platforms);
@@ -1479,7 +1500,7 @@ class Game {
             if (this.checkCollision(this.player, enemy) && this.player.damageTimer <= 0) {
                 this.player.takeDamage();
                 if (this.player.lives <= 0) {
-                    this.state = 'gameOver';
+                    this.setState('gameOver');
                     this.saveBestScore();
                 }
             }
@@ -1491,7 +1512,7 @@ class Game {
                 if (this.checkCircleCollision(this.player, flame) && this.player.damageTimer <= 0) {
                     this.player.takeDamage();
                     if (this.player.lives <= 0) {
-                        this.state = 'gameOver';
+                        this.setState('gameOver');
                         this.saveBestScore();
                     }
                 }
@@ -1527,12 +1548,11 @@ class Game {
         })) {
             this.score += 500 + Math.max(0, this.player.lives) * 500;
             if (this.currentLevel < 6) {
-                this.state = 'levelComplete';
+                this.setState('levelComplete');
                 this.messageTimer = 120;
             } else {
-                this.state = 'victory';
+                this.setState('victory');
                 this.saveBestScore();
-                this.syncOverlays();
             }
         }
 
@@ -1551,8 +1571,6 @@ class Game {
     }
 
     draw() {
-        this.syncOverlays();
-
         if (this.state === 'menu') {
             this.drawOverlayBackground();
             return;
@@ -1586,7 +1604,7 @@ class Game {
                     this.drawMessage('✓ ¡NIVEL COMPLETO!', '#FFD700');
                     if (this.messageTimer === 0) {
                         this.loadLevel(this.currentLevel + 1);
-                        this.state = 'playing';
+                        this.setState('playing');
                     }
                 }
             }
@@ -1602,6 +1620,15 @@ class Game {
         if (this.state !== 'playing' && this.state !== 'levelComplete' && this.state !== 'victory') return;
         
         const hud = document.getElementById('hud');
+        if (!hud) return;
+
+        this.hudFrameThrottle = (this.hudFrameThrottle + 1) % 4;
+        const hudKey = `${this.currentLevel}|${this.level.memberName}|${this.score}|${this.bestScore}|${this.player.lives}|${this.player.shieldTime > 0}|${this.player.speedTime > 0}`;
+        if (this.hudFrameThrottle !== 0 && hudKey === this.lastHudKey) {
+            return;
+        }
+        this.lastHudKey = hudKey;
+
         let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${this.currentLevel}/6</span></div>
                    <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value">${this.level.memberName}</span></div>
                    <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value">${this.score}</span></div>
@@ -1614,8 +1641,11 @@ class Game {
         html += `</div>
                  <div class="hud-line"><span class="hud-label">Escudo:</span> <span class="hud-value">${this.player.shieldTime > 0 ? '🛡️' : '—'}</span></div>
                  <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value">${this.player.speedTime > 0 ? '⚡' : '—'}</span></div>`;
-        
-        hud.innerHTML = html;
+
+        if (html !== this.lastHudHtml) {
+            hud.innerHTML = html;
+            this.lastHudHtml = html;
+        }
     }
 
     drawMessage(text, color) {
@@ -1690,6 +1720,11 @@ class Game {
     }
 
     syncOverlays() {
+        const overlayState = `${this.state}|${this.score}|${this.volume}`;
+        if (overlayState === this.lastOverlayState && this.score === this.lastOverlayScore && this.volume === this.lastOverlayVolume) {
+            return;
+        }
+
         const loadingOverlay = document.getElementById('loadingOverlay');
         const menuOverlay = document.getElementById('menuOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
@@ -1710,6 +1745,10 @@ class Game {
         if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
         if (victoryScore) victoryScore.textContent = `Puntuación final: ${this.score}`;
         if (volumeButton) volumeButton.textContent = `VOLUMEN: ${Math.round(this.volume * 100)}%`;
+
+        this.lastOverlayState = overlayState;
+        this.lastOverlayScore = this.score;
+        this.lastOverlayVolume = this.volume;
     }
 
     loadVolume() {
@@ -1730,14 +1769,12 @@ class Game {
 
     openPauseMenu() {
         if (this.state !== 'playing') return;
-        this.state = 'paused';
-        this.syncOverlays();
+        this.setState('paused');
     }
 
     closePauseMenu() {
         if (this.state !== 'paused') return;
-        this.state = 'playing';
-        this.syncOverlays();
+        this.setState('playing');
     }
 
     togglePause() {
@@ -1805,30 +1842,34 @@ class Game {
         const name = input ? input.value : '';
         this.saveLeaderboardScore(name);
         if (input) input.value = '';
-        this.state = 'menu';
+        this.setState('menu');
         this.currentLevel = 1;
         this.score = 0;
         this.level = null;
         this.player = null;
         this.cameraX = 0;
         this.messageTimer = 0;
+        this.lastHudHtml = '';
+        this.lastHudKey = '';
+        this.hudFrameThrottle = 0;
         document.getElementById('hud').innerHTML = '';
-        this.syncOverlays();
     }
 
     retry() {
         this.currentLevel = 1;
         this.score = 0;
         this.loadLevel(1);
-        this.state = 'playing';
+        this.setState('playing');
         this.messageTimer = 0;
         this.cameraX = 0;
+        this.lastHudHtml = '';
+        this.lastHudKey = '';
+        this.hudFrameThrottle = 0;
         document.getElementById('hud').innerHTML = '';
-        this.syncOverlays();
     }
 
     startGame() {
-        this.state = 'playing';
+        this.setState('playing');
         this.loadLevel(this.currentLevel);
         this.syncOverlays();
     }
@@ -1878,6 +1919,8 @@ window.addEventListener('keyup', (e) => {
 const FRAME_TIME = 1000 / FPS;
 let lastFrameTime = 0;
 let accumulator = 0;
+let fpsFrames = 0;
+let fpsElapsed = 0;
 
 function gameLoop(timestamp = 0) {
     if (!lastFrameTime) {
@@ -1888,9 +1931,24 @@ function gameLoop(timestamp = 0) {
     lastFrameTime = timestamp;
     accumulator += delta;
 
-    while (accumulator >= FRAME_TIME) {
+    fpsFrames++;
+    fpsElapsed += delta;
+    if (fpsElapsed >= 1000) {
+        console.log(`[FPS] ${fpsFrames}`);
+        fpsFrames = 0;
+        fpsElapsed = 0;
+    }
+
+    let updateCount = 0;
+    const maxUpdatesPerFrame = 2;
+    while (accumulator >= FRAME_TIME && updateCount < maxUpdatesPerFrame) {
         game.update();
         accumulator -= FRAME_TIME;
+        updateCount++;
+    }
+
+    if (updateCount === maxUpdatesPerFrame && accumulator >= FRAME_TIME) {
+        accumulator = 0;
     }
 
     game.draw();
