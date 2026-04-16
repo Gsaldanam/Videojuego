@@ -328,6 +328,11 @@ class Enemy {
 
         this.setupType();
         this.direction = Math.random() > 0.5 ? 1 : -1;
+        this.patrolDistance = this.type === 'fast' ? 180 : 140;
+        if (this.type === 'flying') this.patrolDistance = 220;
+        if (this.type === 'teleport') this.patrolDistance = 260;
+        this.patrolMinX = this.x - this.patrolDistance;
+        this.patrolMaxX = this.x + this.patrolDistance;
     }
 
     setupType() {
@@ -370,6 +375,8 @@ class Enemy {
             if (this.teleportTimer <= 0) {
                 this.x = Math.random() * (SCREEN_WIDTH - 100) + 50;
                 this.y = Math.random() * 100 + 100;
+                this.patrolMinX = this.x - this.patrolDistance;
+                this.patrolMaxX = this.x + this.patrolDistance;
                 this.teleportTimer = this.teleportCooldown;
             }
             this.x += this.speed * this.direction;
@@ -378,12 +385,19 @@ class Enemy {
             this.x += this.speed * this.direction;
         }
 
-        // Rebotar
-        for (let platform of platforms) {
-            const rect = platform.getRect();
-            if (this.x < rect.x - 150 || this.x > rect.x + rect.width + 150) {
-                this.direction *= -1;
-            }
+        // Patrulla estable por rango propio
+        if (this.x <= this.patrolMinX) {
+            this.x = this.patrolMinX;
+            this.direction = 1;
+        } else if (this.x + this.width >= this.patrolMaxX) {
+            this.x = this.patrolMaxX - this.width;
+            this.direction = -1;
+        }
+
+        // Seguridad de límites globales
+        if (this.x < 20) {
+            this.x = 20;
+            this.direction = 1;
         }
     }
 
