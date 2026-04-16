@@ -53,6 +53,61 @@
             cursor: pointer;
         }
 
+        .stage {
+            position: relative;
+            width: 1000px;
+            margin: 0 auto;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: rgba(13, 27, 42, 0.92);
+            border: 4px solid #FFD700;
+            border-radius: 10px;
+            z-index: 20;
+            text-align: center;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-title {
+            font-size: 4em;
+            font-weight: bold;
+            color: #FF1493;
+            text-shadow: 0 0 16px rgba(255, 20, 147, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .overlay-subtitle {
+            font-size: 1.25em;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .overlay-button {
+            background: linear-gradient(180deg, #4CAF50, #2e7d32);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 38px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            margin-top: 10px;
+        }
+
+        .overlay-button:hover {
+            transform: translateY(-1px);
+        }
+
         .controls {
             margin-top: 20px;
             padding: 20px;
@@ -163,8 +218,27 @@
     <div class="container">
         <h1>🎮 MARIO BROS BTS 💜</h1>
         <p class="subtitle">¡Rescata a todos los miembros de BTS!</p>
-        
-        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+        <div class="stage">
+            <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+            <div id="loadingOverlay" class="overlay">
+                <div class="overlay-title">CARGANDO...</div>
+                <div class="overlay-subtitle">Preparando la aventura BTS</div>
+            </div>
+
+            <div id="menuOverlay" class="overlay hidden">
+                <div class="overlay-title">MARIO BROS BTS</div>
+                <div class="overlay-subtitle">Recoge monedas, evita enemigos y llega a la meta</div>
+                <button id="playButton" class="overlay-button">PLAY</button>
+            </div>
+
+            <div id="gameOverOverlay" class="overlay hidden">
+                <div class="overlay-title" style="color:#ff4444;">GAME OVER</div>
+                <div class="overlay-subtitle" id="gameOverScore">Puntuación: 0</div>
+                <button id="retryButton" class="overlay-button">REINTENTAR</button>
+            </div>
+        </div>
         
         <div id="hud">
             <div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value" id="hudLevel">1/6</span></div>

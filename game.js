@@ -631,6 +631,52 @@ class Level {
             () => this.generateLevelV()
         ];
         methods[this.levelNumber - 1]();
+        this.cleanupLayout();
+    }
+
+    cleanupLayout() {
+        const items = [];
+        const addItem = (item, type) => items.push({ item, type });
+
+        for (const coin of this.coins) addItem(coin, 'coin');
+        for (const powerup of this.powerups) addItem(powerup, 'powerup');
+        for (const enemy of this.enemies) addItem(enemy, 'enemy');
+        for (const trap of this.fireTraps) addItem(trap, 'trap');
+
+        const getBox = (obj, type) => {
+            if (type === 'coin') return { x: obj.x - 8, y: obj.y - 8, width: 16, height: 16 };
+            if (type === 'powerup') return { x: obj.x, y: obj.y, width: obj.width, height: obj.height };
+            if (type === 'enemy') return { x: obj.x, y: obj.y, width: obj.width, height: obj.height };
+            return { x: obj.x - obj.radius, y: obj.y - obj.radius, width: obj.radius * 2, height: obj.radius * 2 };
+        };
+
+        const intersects = (a, b) =>
+            a.x < b.x + b.width + 12 &&
+            a.x + a.width + 12 > b.x &&
+            a.y < b.y + b.height + 12 &&
+            a.y + a.height + 12 > b.y;
+
+        for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < i; j++) {
+                const current = items[i];
+                const other = items[j];
+                let a = getBox(current.item, current.type);
+                const b = getBox(other.item, other.type);
+                let safety = 0;
+
+                while (intersects(a, b) && safety < 10) {
+                    if (current.type === 'trap') {
+                        current.item.x += 90;
+                        current.item.y -= 24;
+                    } else {
+                        current.item.x += 42;
+                        current.item.y += (safety % 2 === 0) ? -14 : 14;
+                    }
+                    a = getBox(current.item, current.type);
+                    safety++;
+                }
+            }
+        }
     }
 
     generateLevelJin() {
@@ -972,8 +1018,11 @@ class Game {
         if (this.state === 'loading') {
             this.loadingTimer--;
             if (this.loadingTimer <= 0) this.state = 'menu';
+            this.syncOverlays();
             return;
         }
+
+        this.syncOverlays();
 
         if (this.state !== 'playing') return;
 
@@ -1051,6 +1100,8 @@ class Game {
     }
 
     draw() {
+        this.syncOverlays();
+
         if (this.state === 'loading') {
             this.drawLoading();
             return;
@@ -1205,6 +1256,21 @@ class Game {
         ctx.fillText('REINTENTAR', SCREEN_WIDTH / 2, retryButtonY + 42);
     }
 
+    syncOverlays() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const gameOverScore = document.getElementById('gameOverScore');
+
+        if (!loadingOverlay || !menuOverlay || !gameOverOverlay) return;
+
+        loadingOverlay.classList.toggle('hidden', this.state !== 'loading');
+        menuOverlay.classList.toggle('hidden', this.state !== 'menu');
+        gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
+
+        if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
+    }
+
     loadBestScore() {
         return localStorage.getItem('btsGameBest') ? parseInt(localStorage.getItem('btsGameBest')) : 0;
     }
@@ -1224,11 +1290,13 @@ class Game {
         this.messageTimer = 0;
         this.cameraX = 0;
         document.getElementById('hud').innerHTML = '';
+        this.syncOverlays();
     }
 
     startGame() {
         this.state = 'playing';
         this.loadLevel(this.currentLevel);
+        this.syncOverlays();
     }
 }
 
@@ -1276,5 +1344,12 @@ function gameLoop() {
 
 window.addEventListener('load', () => {
     game = new Game();
+    const playButton = document.getElementById('playButton');
+    const retryButton = document.getElementById('retryButton');
+
+    if (playButton) playButton.addEventListener('click', () => game.startGame());
+    if (retryButton) retryButton.addEventListener('click', () => game.retry());
+
+    game.syncOverlays();
     gameLoop();
 });
