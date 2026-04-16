@@ -640,7 +640,6 @@ class Level {
 
         for (const coin of this.coins) addItem(coin, 'coin');
         for (const powerup of this.powerups) addItem(powerup, 'powerup');
-        for (const enemy of this.enemies) addItem(enemy, 'enemy');
         for (const trap of this.fireTraps) addItem(trap, 'trap');
 
         const getBox = (obj, type) => {
@@ -1036,6 +1035,7 @@ class Game {
                 if (this.player.lives <= 0) {
                     this.state = 'gameOver';
                     this.saveBestScore();
+                    this.saveLeaderboardScore();
                 }
             }
         }
@@ -1048,6 +1048,7 @@ class Game {
                     if (this.player.lives <= 0) {
                         this.state = 'gameOver';
                         this.saveBestScore();
+                        this.saveLeaderboardScore();
                     }
                 }
             }
@@ -1075,7 +1076,7 @@ class Game {
 
         // Meta
         if (this.checkCircleCollision(this.player, { x: this.level.goalX, y: this.level.goalY, radius: 30 })) {
-            this.score += 500;
+            this.score += 500 + Math.max(0, this.player.lives) * 500;
             if (this.currentLevel < 6) {
                 this.state = 'levelComplete';
                 this.messageTimer = 120;
@@ -1132,7 +1133,11 @@ class Game {
                     }
                 } else if (this.state === 'ending') {
                     this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
-                    if (this.messageTimer === 0) this.state = 'gameOver';
+                    if (this.messageTimer === 0) {
+                        this.state = 'gameOver';
+                        this.saveBestScore();
+                        this.saveLeaderboardScore();
+                    }
                 }
             }
         }
@@ -1282,6 +1287,42 @@ class Game {
         }
     }
 
+    loadLeaderboard() {
+        try {
+            const data = localStorage.getItem('btsGameLeaderboard');
+            return data ? JSON.parse(data) : [];
+        } catch {
+            return [];
+        }
+    }
+
+    saveLeaderboardScore() {
+        const leaderboard = this.loadLeaderboard();
+        leaderboard.push({ score: this.score, date: new Date().toLocaleDateString('es-ES') });
+        leaderboard.sort((a, b) => b.score - a.score);
+        const top = leaderboard.slice(0, 5);
+        localStorage.setItem('btsGameLeaderboard', JSON.stringify(top));
+        this.renderLeaderboard(top);
+    }
+
+    renderLeaderboard(list = this.loadLeaderboard()) {
+        const board = document.getElementById('leaderboardList');
+        if (!board) return;
+
+        if (!list.length) {
+            board.innerHTML = '<div class="leaderboard-empty">Aún no hay puntajes</div>';
+            return;
+        }
+
+        board.innerHTML = list.map((entry, index) => `
+            <div class="leaderboard-item ${index === 0 ? 'top' : ''}">
+                <span class="leaderboard-rank">${index + 1}.</span>
+                <span class="leaderboard-score">${entry.score}</span>
+                <span class="leaderboard-date">${entry.date}</span>
+            </div>
+        `).join('');
+    }
+
     retry() {
         this.currentLevel = 1;
         this.score = 0;
@@ -1351,5 +1392,6 @@ window.addEventListener('load', () => {
     if (retryButton) retryButton.addEventListener('click', () => game.retry());
 
     game.syncOverlays();
+    game.renderLeaderboard();
     gameLoop();
 });

@@ -19,6 +19,7 @@
             align-items: center;
             min-height: 100vh;
             color: #fff;
+            position: relative;
         }
 
         .container {
@@ -148,6 +149,64 @@
             margin: 5px 0;
         }
 
+        .leaderboard {
+            position: fixed;
+            right: 24px;
+            top: 120px;
+            width: 260px;
+            background: rgba(0, 0, 0, 0.32);
+            border: 2px solid #FFD700;
+            border-radius: 14px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.18);
+            text-align: left;
+        }
+
+        .leaderboard h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+            font-size: 1.15em;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 0.92em;
+        }
+
+        .leaderboard-item.top {
+            background: rgba(255, 215, 0, 0.12);
+            border-radius: 8px;
+        }
+
+        .leaderboard-rank {
+            width: 18px;
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        .leaderboard-score {
+            margin-left: auto;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .leaderboard-date {
+            width: 72px;
+            text-align: right;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8em;
+        }
+
+        .leaderboard-empty {
+            color: rgba(255,255,255,0.7);
+            padding: 8px 4px;
+        }
+
         #hud {
             position: absolute;
             top: 10px;
@@ -211,6 +270,9 @@
         @media (max-width: 1024px) {
             h1 { font-size: 2em; }
             canvas { max-width: 100%; }
+            .leaderboard {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -265,6 +327,13 @@
             <p>Última actualización: Abril 2026</p>
         </div>
     </div>
+
+    <aside class="leaderboard">
+        <h3>🏆 High Scores</h3>
+        <div id="leaderboardList">
+            <div class="leaderboard-empty">Cargando...</div>
+        </div>
+    </aside>
 
     <script src="game.js"></script>
 </body>
