@@ -63,9 +63,10 @@ class TiledSpriteManager {
         const candidates = [
             {
                 speed: 0.05,
-                alpha: 0.45,
-                scale: 3,
-                yOffset: 90,
+                alpha: 0.55,
+                scale: 5,
+                yOffset: 210,
+                srcPad: 1,
                 paths: [
                     'tilemap-backgrounds.png',
                     './Tilemap/tilemap-backgrounds.png',
@@ -74,9 +75,10 @@ class TiledSpriteManager {
             },
             {
                 speed: 0.12,
-                alpha: 0.75,
-                scale: 4,
-                yOffset: 190,
+                alpha: 0.85,
+                scale: 6,
+                yOffset: 145,
+                srcPad: 1,
                 paths: [
                     'tilemap-backgrounds_packed.png',
                     './Tilemap/tilemap-backgrounds_packed.png',
@@ -94,7 +96,8 @@ class TiledSpriteManager {
                     speed: layer.speed,
                     alpha: layer.alpha,
                     scale: layer.scale,
-                    yOffset: layer.yOffset
+                    yOffset: layer.yOffset,
+                    srcPad: layer.srcPad || 0
                 };
             })
         );
@@ -265,18 +268,33 @@ class TiledSpriteManager {
             const source = layer.image;
             if (!source?.width || !source?.height) continue;
 
+            const srcPad = Math.max(0, Math.min(layer.srcPad || 0, 2));
+            const srcW = Math.max(1, source.width - srcPad * 2);
+            const srcH = Math.max(1, source.height - srcPad * 2);
             const scale = layer.scale || 3;
-            const drawW = source.width * scale;
-            const drawH = source.height * scale;
-            const offsetX = -((cameraX * layer.speed) % drawW);
-            const y = Math.max(0, SCREEN_HEIGHT - drawH + (layer.yOffset || 0));
+            const drawW = srcW * scale;
+            const drawH = srcH * scale;
+            const rawOffsetX = -((cameraX * layer.speed) % drawW);
+            const offsetX = Math.floor(rawOffsetX);
+            const y = Math.round(SCREEN_HEIGHT - drawH - (layer.yOffset || 0));
 
             ctx.save();
             ctx.globalAlpha = layer.alpha;
             ctx.imageSmoothingEnabled = false;
 
             for (let x = offsetX - drawW; x < SCREEN_WIDTH + drawW; x += drawW) {
-                ctx.drawImage(source, x, y, drawW, drawH);
+                const drawX = Math.round(x);
+                ctx.drawImage(
+                    source,
+                    srcPad,
+                    srcPad,
+                    srcW,
+                    srcH,
+                    drawX,
+                    y,
+                    drawW + 2,
+                    drawH
+                );
             }
 
             ctx.restore();
