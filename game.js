@@ -18,6 +18,146 @@ const FPS = 60;
 // Variables globales
 let game;
 let keys = {};
+let spriteManager;
+
+class TiledSpriteManager {
+    constructor() {
+        this.tilesets = {};
+        this.loadAll();
+    }
+
+    async loadAll() {
+        await Promise.all([
+            this.loadTileset('tiles', 'tileset-tiles.tsx'),
+            this.loadTileset('characters', 'tileset-characters.tsx')
+        ]);
+    }
+
+    async loadTileset(key, tsxPath) {
+        try {
+            const response = await fetch(tsxPath);
+            if (!response.ok) return;
+
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlText, 'application/xml');
+            const parserError = xml.querySelector('parsererror');
+            if (parserError) return;
+
+            const tilesetNode = xml.querySelector('tileset');
+            const imageNode = xml.querySelector('image');
+            if (!tilesetNode || !imageNode) return;
+
+            const tileWidth = parseInt(tilesetNode.getAttribute('tilewidth') || '0', 10);
+            const tileHeight = parseInt(tilesetNode.getAttribute('tileheight') || '0', 10);
+            const columns = parseInt(tilesetNode.getAttribute('columns') || '0', 10);
+            const source = imageNode.getAttribute('source') || '';
+            if (!tileWidth || !tileHeight || !columns || !source) return;
+
+            const image = await this.loadImageWithFallbacks(this.getImageCandidates(tsxPath, source));
+            if (!image) return;
+
+            this.tilesets[key] = {
+                image,
+                tileWidth,
+                tileHeight,
+                columns
+            };
+        } catch {
+            // Ignorar errores de carga para mantener fallback por formas
+        }
+    }
+
+    getImageCandidates(tsxPath, source) {
+        const normalized = source.replace(/\\/g, '/');
+        const fileName = normalized.split('/').pop();
+        const tsxDir = tsxPath.includes('/') ? tsxPath.slice(0, tsxPath.lastIndexOf('/') + 1) : '';
+
+        return [...new Set([
+            `${tsxDir}${normalized}`,
+            normalized,
+            fileName
+        ].filter(Boolean))];
+    }
+
+    loadImageWithFallbacks(candidates) {
+        return new Promise((resolve) => {
+            const tryNext = (index) => {
+                if (index >= candidates.length) {
+                    resolve(null);
+                    return;
+                }
+
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = () => tryNext(index + 1);
+                image.src = candidates[index];
+            };
+
+            tryNext(0);
+        });
+    }
+
+    getFrame(tilesetKey, localTileId) {
+        const tileset = this.tilesets[tilesetKey];
+        if (!tileset || !tileset.image) return null;
+        if (!Number.isFinite(localTileId) || localTileId < 0) return null;
+
+        const sx = (localTileId % tileset.columns) * tileset.tileWidth;
+        const sy = Math.floor(localTileId / tileset.columns) * tileset.tileHeight;
+        return {
+            image: tileset.image,
+            sx,
+            sy,
+            sw: tileset.tileWidth,
+            sh: tileset.tileHeight
+        };
+    }
+
+    drawTile(ctx, tilesetKey, localTileId, dx, dy, dw, dh, options = {}) {
+        const frame = this.getFrame(tilesetKey, localTileId);
+        if (!frame) return false;
+
+        const alpha = options.alpha ?? 1;
+        const flipX = !!options.flipX;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        if (flipX) {
+            ctx.translate(dx + dw, dy);
+            ctx.scale(-1, 1);
+            ctx.drawImage(frame.image, frame.sx, frame.sy, frame.sw, frame.sh, 0, 0, dw, dh);
+        } else {
+            ctx.drawImage(frame.image, frame.sx, frame.sy, frame.sw, frame.sh, dx, dy, dw, dh);
+        }
+        ctx.restore();
+        return true;
+    }
+
+    drawTiledRect(ctx, tilesetKey, localTileId, x, y, width, height) {
+        const frame = this.getFrame(tilesetKey, localTileId);
+        if (!frame) return false;
+
+        for (let py = 0; py < height; py += frame.sh) {
+            for (let px = 0; px < width; px += frame.sw) {
+                const partW = Math.min(frame.sw, width - px);
+                const partH = Math.min(frame.sh, height - py);
+                ctx.drawImage(
+                    frame.image,
+                    frame.sx,
+                    frame.sy,
+                    partW,
+                    partH,
+                    x + px,
+                    y + py,
+                    partW,
+                    partH
+                );
+            }
+        }
+        return true;
+    }
+}
 
 // ============================================
 // CLASE: Particle (Partículas mejoradas)
@@ -194,6 +334,36 @@ class Platform {
 
     draw(ctx, cameraX) {
         const x = this.x - cameraX + this.moving;
+        const spriteTileByType = {
+            normal: 122,
+            moving: 101,
+            spike: 154
+        };
+
+        const spriteDrawn = spriteManager?.drawTiledRect(
+            ctx,
+            'tiles',
+            spriteTileByType[this.type] ?? spriteTileByType.normal,
+            x,
+            this.y,
+            this.width,
+            this.height
+        );
+
+        if (spriteDrawn) {
+            if (this.type === 'spike') {
+                for (let i = 0; i < this.width; i += 15) {
+                    ctx.fillStyle = 'rgba(160, 20, 20, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(x + i, this.y);
+                    ctx.lineTo(x + i + 7, this.y - 8);
+                    ctx.lineTo(x + i + 14, this.y);
+                    ctx.fill();
+                }
+            }
+            return;
+        }
+
         const [r, g, b] = this.color;
 
         // Plataforma principal
@@ -420,9 +590,44 @@ class Enemy {
     }
 
     draw(ctx, cameraX) {
-        const [r, g, b] = this.color;
         const x = this.x - cameraX;
         const y = this.y;
+
+        const spriteByType = {
+            normal: 1,
+            fast: 4,
+            flying: 7,
+            shooter: 10,
+            teleport: 13
+        };
+        const teleportAlpha = this.type === 'teleport'
+            ? Math.sin(this.teleportTimer / 30) * 0.4 + 0.6
+            : 1;
+
+        const spriteDrawn = spriteManager?.drawTile(
+            ctx,
+            'characters',
+            spriteByType[this.type] ?? spriteByType.normal,
+            x,
+            y,
+            this.width,
+            this.height,
+            {
+                flipX: this.direction < 0,
+                alpha: teleportAlpha
+            }
+        );
+
+        if (spriteDrawn) {
+            if (this.type === 'flying') {
+                ctx.fillStyle = 'rgba(200, 100, 50, 0.8)';
+                ctx.fillRect(x - 8, y + 8, 6, 12);
+                ctx.fillRect(x + 32, y + 8, 6, 12);
+            }
+            return;
+        }
+
+        const [r, g, b] = this.color;
 
         // Cuerpo principal
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
@@ -586,6 +791,35 @@ class Player {
     draw(ctx, cameraX) {
         const x = this.x - cameraX;
         const y = this.y;
+
+        const spriteDrawn = spriteManager?.drawTile(
+            ctx,
+            'characters',
+            0,
+            x,
+            y,
+            this.width,
+            this.height,
+            { flipX: this.vx < -0.1 }
+        );
+
+        if (spriteDrawn) {
+            if (this.speedTime > 0) {
+                ctx.fillStyle = 'rgba(199, 125, 255, 0.35)';
+                ctx.fillRect(x, y, this.width, this.height);
+            }
+
+            if (this.shieldTime > 0) {
+                ctx.strokeStyle = `rgba(0, 150, 255, ${0.3 + (this.shieldTime % 10) * 0.07})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x + 15, y + 17, 28, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            for (let p of this.particles) p.draw(ctx, cameraX);
+            return;
+        }
 
         // Cuerpo
         const bodyColor = this.speedTime > 0 ? [199, 125, 255] : [255, 235, 59];
@@ -939,23 +1173,36 @@ class Level {
         const goalLeft = goalX - this.goalWidth / 2;
         const goalTop = this.goalY - this.goalHeight;
 
-        ctx.fillStyle = '#2a2f7a';
-        ctx.fillRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
+        const goalSpriteByLevel = [20, 21, 22, 23, 24, 25];
+        const goalSpriteDrawn = spriteManager?.drawTile(
+            ctx,
+            'characters',
+            goalSpriteByLevel[Math.max(0, Math.min(goalSpriteByLevel.length - 1, this.levelNumber - 1))],
+            goalLeft,
+            goalTop,
+            this.goalWidth,
+            this.goalHeight
+        );
 
-        ctx.fillStyle = '#f2d2b6';
-        ctx.beginPath();
-        ctx.arc(goalX, goalTop + 11, 10, 0, Math.PI * 2);
-        ctx.fill();
+        if (!goalSpriteDrawn) {
+            ctx.fillStyle = '#2a2f7a';
+            ctx.fillRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
 
-        ctx.fillStyle = '#1b1b1b';
-        ctx.fillRect(goalX - 7, goalTop + 3, 14, 5);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(goalX - 4, goalTop + 10, 2, 2);
-        ctx.fillRect(goalX + 2, goalTop + 10, 2, 2);
+            ctx.fillStyle = '#f2d2b6';
+            ctx.beginPath();
+            ctx.arc(goalX, goalTop + 11, 10, 0, Math.PI * 2);
+            ctx.fill();
 
-        ctx.strokeStyle = '#ff66c4';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
+            ctx.fillStyle = '#1b1b1b';
+            ctx.fillRect(goalX - 7, goalTop + 3, 14, 5);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(goalX - 4, goalTop + 10, 2, 2);
+            ctx.fillRect(goalX + 2, goalTop + 10, 2, 2);
+
+            ctx.strokeStyle = '#ff66c4';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
+        }
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 10px Arial';
@@ -1408,6 +1655,7 @@ function gameLoop() {
 }
 
 window.addEventListener('load', () => {
+    spriteManager = new TiledSpriteManager();
     game = new Game();
     const playButton = document.getElementById('playButton');
     const retryButton = document.getElementById('retryButton');
