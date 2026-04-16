@@ -4,6 +4,7 @@
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
 // Constantes de Física
 const GRAVITY = 0.6;
@@ -61,8 +62,10 @@ class TiledSpriteManager {
     async loadBackgroundLayers() {
         const candidates = [
             {
-                speed: 0.08,
-                alpha: 0.35,
+                speed: 0.05,
+                alpha: 0.45,
+                scale: 3,
+                yOffset: 90,
                 paths: [
                     'tilemap-backgrounds.png',
                     './Tilemap/tilemap-backgrounds.png',
@@ -70,8 +73,10 @@ class TiledSpriteManager {
                 ]
             },
             {
-                speed: 0.16,
-                alpha: 0.55,
+                speed: 0.12,
+                alpha: 0.75,
+                scale: 4,
+                yOffset: 190,
                 paths: [
                     'tilemap-backgrounds_packed.png',
                     './Tilemap/tilemap-backgrounds_packed.png',
@@ -87,7 +92,9 @@ class TiledSpriteManager {
                 return {
                     image,
                     speed: layer.speed,
-                    alpha: layer.alpha
+                    alpha: layer.alpha,
+                    scale: layer.scale,
+                    yOffset: layer.yOffset
                 };
             })
         );
@@ -245,8 +252,12 @@ class TiledSpriteManager {
     }
 
     drawParallaxBackground(ctx, cameraX) {
-        ctx.fillStyle = '#0d1b2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const gradient = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
+        gradient.addColorStop(0, '#1f3442');
+        gradient.addColorStop(0.55, '#2d4853');
+        gradient.addColorStop(1, '#415f60');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
         if (!this.backgroundLayers.length) return false;
 
@@ -254,16 +265,18 @@ class TiledSpriteManager {
             const source = layer.image;
             if (!source?.width || !source?.height) continue;
 
-            const scale = Math.ceil(Math.max(1, SCREEN_HEIGHT / source.height));
+            const scale = layer.scale || 3;
             const drawW = source.width * scale;
             const drawH = source.height * scale;
             const offsetX = -((cameraX * layer.speed) % drawW);
+            const y = Math.max(0, SCREEN_HEIGHT - drawH + (layer.yOffset || 0));
 
             ctx.save();
             ctx.globalAlpha = layer.alpha;
+            ctx.imageSmoothingEnabled = false;
 
             for (let x = offsetX - drawW; x < SCREEN_WIDTH + drawW; x += drawW) {
-                ctx.drawImage(source, x, SCREEN_HEIGHT - drawH, drawW, drawH);
+                ctx.drawImage(source, x, y, drawW, drawH);
             }
 
             ctx.restore();
@@ -444,6 +457,10 @@ class Platform {
                 this.moveDir *= -1;
             }
         }
+    }
+
+    isMoving() {
+        return this.type === 'moving';
     }
 
     draw(ctx, cameraX) {
@@ -989,6 +1006,10 @@ class Level {
     constructor(levelNumber) {
         this.levelNumber = levelNumber;
         this.platforms = [];
+        this.staticPlatforms = [];
+        this.dynamicPlatforms = [];
+        this.staticPlatformCanvas = null;
+        this.levelWidth = SCREEN_WIDTH;
         this.enemies = [];
         this.coins = [];
         this.powerups = [];
@@ -1001,6 +1022,7 @@ class Level {
         this.memberName = this.members[levelNumber - 1];
 
         this.generateLevel();
+        this.buildPlatformRenderCache();
     }
 
     generateLevel() {
@@ -1013,6 +1035,69 @@ class Level {
             () => this.generateLevelV()
         ];
         methods[this.levelNumber - 1]();
+    }
+
+    buildPlatformRenderCache() {
+        this.dynamicPlatforms = this.platforms.filter(platform => platform.isMoving());
+        this.staticPlatforms = this.platforms.filter(platform => !platform.isMoving());
+
+        const maxPlatformX = this.platforms.reduce(
+            (maxX, platform) => Math.max(maxX, platform.x + platform.width),
+            SCREEN_WIDTH
+        );
+        this.levelWidth = Math.ceil(maxPlatformX + 120);
+
+        if (!this.staticPlatforms.length) {
+            this.staticPlatformCanvas = null;
+            return;
+        }
+
+        const cacheCanvas = document.createElement('canvas');
+        cacheCanvas.width = this.levelWidth;
+        cacheCanvas.height = SCREEN_HEIGHT;
+        const cacheCtx = cacheCanvas.getContext('2d');
+        cacheCtx.imageSmoothingEnabled = false;
+
+        for (const platform of this.staticPlatforms) {
+            platform.draw(cacheCtx, 0);
+        }
+
+        this.staticPlatformCanvas = cacheCanvas;
+    }
+
+    isRectVisible(worldX, worldY, width, height, cameraX, padding = 120) {
+        const screenX = worldX - cameraX;
+        return (
+            screenX + width >= -padding &&
+            screenX <= SCREEN_WIDTH + padding &&
+            worldY + height >= -padding &&
+            worldY <= SCREEN_HEIGHT + padding
+        );
+    }
+
+    isCircleVisible(worldX, worldY, radius, cameraX, padding = 120) {
+        const diameter = radius * 2;
+        return this.isRectVisible(worldX - radius, worldY - radius, diameter, diameter, cameraX, padding);
+    }
+
+    drawStaticPlatforms(ctx, cameraX) {
+        if (!this.staticPlatformCanvas) return;
+
+        const srcX = Math.max(0, Math.floor(cameraX));
+        const srcW = Math.min(SCREEN_WIDTH, this.staticPlatformCanvas.width - srcX);
+        if (srcW <= 0) return;
+
+        ctx.drawImage(
+            this.staticPlatformCanvas,
+            srcX,
+            0,
+            srcW,
+            SCREEN_HEIGHT,
+            0,
+            0,
+            srcW,
+            SCREEN_HEIGHT
+        );
     }
 
     generateLevelJin() {
@@ -1266,7 +1351,7 @@ class Level {
     }
 
     update() {
-        for (let platform of this.platforms) platform.update();
+        for (let platform of this.dynamicPlatforms) platform.update();
         for (let enemy of this.enemies) enemy.update(this.platforms);
         for (let trap of this.fireTraps) trap.update();
         for (let coin of this.coins) coin.update();
@@ -1278,11 +1363,37 @@ class Level {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        for (let platform of this.platforms) platform.draw(ctx, game.cameraX);
-        for (let trap of this.fireTraps) trap.draw(ctx, game.cameraX);
-        for (let coin of this.coins) coin.draw(ctx, game.cameraX);
-        for (let powerup of this.powerups) powerup.draw(ctx, game.cameraX);
-        for (let enemy of this.enemies) enemy.draw(ctx, game.cameraX);
+        this.drawStaticPlatforms(ctx, game.cameraX);
+        for (let platform of this.dynamicPlatforms) {
+            if (this.isRectVisible(platform.x + platform.moving, platform.y, platform.width, platform.height, game.cameraX)) {
+                platform.draw(ctx, game.cameraX);
+            }
+        }
+
+        for (let trap of this.fireTraps) {
+            const trapRadius = trap.segmentCount * trap.segmentSpacing + trap.fireSize;
+            if (this.isCircleVisible(trap.x, trap.y, trapRadius, game.cameraX, 160)) {
+                trap.draw(ctx, game.cameraX);
+            }
+        }
+
+        for (let coin of this.coins) {
+            if (this.isCircleVisible(coin.x, coin.y, coin.radius, game.cameraX)) {
+                coin.draw(ctx, game.cameraX);
+            }
+        }
+
+        for (let powerup of this.powerups) {
+            if (this.isRectVisible(powerup.x, powerup.y, powerup.width, powerup.height, game.cameraX)) {
+                powerup.draw(ctx, game.cameraX);
+            }
+        }
+
+        for (let enemy of this.enemies) {
+            if (this.isRectVisible(enemy.x, enemy.y, enemy.width, enemy.height, game.cameraX)) {
+                enemy.draw(ctx, game.cameraX);
+            }
+        }
 
         // Meta: integrante BTS
         const goalX = this.goalX - game.cameraX;
@@ -1764,10 +1875,26 @@ window.addEventListener('keyup', (e) => {
 // ============================================
 // LOOP PRINCIPAL
 // ============================================
-function gameLoop() {
-    game.update();
+const FRAME_TIME = 1000 / FPS;
+let lastFrameTime = 0;
+let accumulator = 0;
+
+function gameLoop(timestamp = 0) {
+    if (!lastFrameTime) {
+        lastFrameTime = timestamp;
+    }
+
+    const delta = Math.min(100, timestamp - lastFrameTime);
+    lastFrameTime = timestamp;
+    accumulator += delta;
+
+    while (accumulator >= FRAME_TIME) {
+        game.update();
+        accumulator -= FRAME_TIME;
+    }
+
     game.draw();
-    setTimeout(gameLoop, 1000 / FPS);
+    requestAnimationFrame(gameLoop);
 }
 
 window.addEventListener('load', () => {
@@ -1795,5 +1922,5 @@ window.addEventListener('load', () => {
 
     game.syncOverlays();
     game.renderLeaderboard();
-    gameLoop();
+    requestAnimationFrame(gameLoop);
 });
