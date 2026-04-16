@@ -647,6 +647,8 @@ class Level {
         this.fireTraps = [];
         this.goalX = 0;
         this.goalY = 0;
+        this.goalWidth = 34;
+        this.goalHeight = 42;
         this.members = ['Jin', 'Suga', 'J-Hope', 'RM', 'Jungkook', 'V'];
         this.memberName = this.members[levelNumber - 1];
 
@@ -754,8 +756,8 @@ class Level {
         this.coins.push(new Coin(1950, 360, false));
         this.coins.push(new Coin(2220, 270, true));
         this.coins.push(new Coin(2470, 330, false));
-        this.coins.push(new Coin(2730, 240, true));
-        this.coins.push(new Coin(2860, 240, false));
+        this.coins.push(new Coin(2660, 240, true));
+        this.coins.push(new Coin(2550, 330, false));
 
         this.powerups.push(new PowerUp(660, 360, 'shield'));
         this.powerups.push(new PowerUp(1680, 300, 'speed'));
@@ -801,7 +803,7 @@ class Level {
         this.coins.push(new Coin(1960, 300, true));
         this.coins.push(new Coin(2220, 370, false));
         this.coins.push(new Coin(2480, 270, true));
-        this.coins.push(new Coin(2740, 220, true));
+        this.coins.push(new Coin(2620, 270, true));
 
         this.powerups.push(new PowerUp(460, 390, 'shield'));
         this.powerups.push(new PowerUp(1460, 330, 'speed'));
@@ -813,7 +815,7 @@ class Level {
         this.enemies.push(new Enemy(2220, 370, 'fast'));
         this.enemies.push(new Enemy(1100, 260, 'flying'));
 
-        this.goalX = 2780;
+        this.goalX = 2860;
         this.goalY = 250;
     }
 
@@ -891,7 +893,7 @@ class Level {
         const coinPositions = [
             [240, 450], [490, 390], [750, 440], [1000, 330], [1260, 400],
             [1530, 290], [1790, 370], [2050, 270], [2310, 350], [2570, 250],
-            [2830, 310], [3090, 210], [3350, 270], [3610, 190], [3730, 190],
+            [2830, 310], [3090, 210], [3350, 270], [3610, 190], [3490, 260],
             [540, 390], [1300, 470], [2210, 470], [3220, 470], [2660, 250]
         ];
         for (let i = 0; i < coinPositions.length; i++) {
@@ -932,17 +934,33 @@ class Level {
         for (let powerup of this.powerups) powerup.draw(ctx, game.cameraX);
         for (let enemy of this.enemies) enemy.draw(ctx, game.cameraX);
 
-        // Meta mejorada
+        // Meta: integrante BTS
         const goalX = this.goalX - game.cameraX;
-        ctx.fillStyle = '#FFD700';
-        ctx.fillRect(goalX - 20, this.goalY - 20, 40, 40);
-        ctx.strokeStyle = '#FFA500';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(goalX - 20, this.goalY - 20, 40, 40);
+        const goalLeft = goalX - this.goalWidth / 2;
+        const goalTop = this.goalY - this.goalHeight;
+
+        ctx.fillStyle = '#2a2f7a';
+        ctx.fillRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
+
+        ctx.fillStyle = '#f2d2b6';
+        ctx.beginPath();
+        ctx.arc(goalX, goalTop + 11, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#1b1b1b';
+        ctx.fillRect(goalX - 7, goalTop + 3, 14, 5);
         ctx.fillStyle = '#000';
-        ctx.font = 'bold 28px Arial';
+        ctx.fillRect(goalX - 4, goalTop + 10, 2, 2);
+        ctx.fillRect(goalX + 2, goalTop + 10, 2, 2);
+
+        ctx.strokeStyle = '#ff66c4';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(goalLeft, goalTop + 14, this.goalWidth, this.goalHeight - 14);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('✓', goalX, this.goalY + 8);
+        ctx.fillText(this.memberName, goalX, goalTop + this.goalHeight + 12);
     }
 }
 
@@ -1026,7 +1044,12 @@ class Game {
         }
 
         // Meta
-        if (this.checkCircleCollision(this.player, { x: this.level.goalX, y: this.level.goalY, radius: 30 })) {
+        if (this.checkCollision(this.player, {
+            x: this.level.goalX - this.level.goalWidth / 2,
+            y: this.level.goalY - this.level.goalHeight,
+            width: this.level.goalWidth,
+            height: this.level.goalHeight
+        })) {
             this.score += 500 + Math.max(0, this.player.lives) * 500;
             if (this.currentLevel < 6) {
                 this.state = 'levelComplete';
