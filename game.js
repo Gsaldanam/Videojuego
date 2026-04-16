@@ -735,12 +735,12 @@ class Level {
         this.coins.push(new Coin(1950, 370, false));
         this.coins.push(new Coin(2200, 270, true));
         this.coins.push(new Coin(2400, 330, false));
-        this.coins.push(new Coin(2500, 330, true));
+        this.coins.push(new Coin(2550, 330, true));
         this.coins.push(new Coin(2300, 330, false));
 
         // Power-ups separados de monedas
         this.powerups.push(new PowerUp(650, 370, 'shield'));
-        this.powerups.push(new PowerUp(1400, 390, 'speed'));
+        this.powerups.push(new PowerUp(1600, 350, 'speed'));
 
         this.enemies.push(new Enemy(450, 430, 'normal'));
         this.enemies.push(new Enemy(950, 410, 'fast'));
@@ -813,12 +813,12 @@ class Level {
         this.platforms.push(new Platform(1150, 450, 100, 20, 'normal'));
 
         // Trampas EN ALTURA PROTEGIDAS
-        this.fireTraps.push(new FireTrap(450, 350));
-        this.fireTraps.push(new FireTrap(1200, 370));
+        this.fireTraps.push(new FireTrap(520, 350));
+        this.fireTraps.push(new FireTrap(1280, 370));
 
         // Monedas en lugares seguros
         this.coins.push(new Coin(200, 450, true));
-        this.coins.push(new Coin(450, 370, false));
+        this.coins.push(new Coin(500, 370, false));
         this.coins.push(new Coin(700, 420, true));
         this.coins.push(new Coin(950, 320, false));
         this.coins.push(new Coin(1200, 390, true));
@@ -833,8 +833,8 @@ class Level {
 
         // Power-ups separados
         this.powerups.push(new PowerUp(700, 420, 'shield'));
-        this.powerups.push(new PowerUp(1450, 270, 'speed'));
-        this.powerups.push(new PowerUp(1950, 250, 'health'));
+        this.powerups.push(new PowerUp(1550, 270, 'speed'));
+        this.powerups.push(new PowerUp(2000, 250, 'health'));
 
         // Enemigos normales evitables
         this.enemies.push(new Enemy(450, 370, 'normal'));
@@ -890,10 +890,10 @@ class Level {
         }
 
         // Power-ups estratégicos
-        this.powerups.push(new PowerUp(700, 430, 'shield'));
-        this.powerups.push(new PowerUp(1450, 270, 'speed'));
-        this.powerups.push(new PowerUp(2450, 210, 'health'));
-        this.powerups.push(new PowerUp(2950, 170, 'shield'));
+        this.powerups.push(new PowerUp(650, 430, 'shield'));
+        this.powerups.push(new PowerUp(1500, 270, 'speed'));
+        this.powerups.push(new PowerUp(2500, 210, 'health'));
+        this.powerups.push(new PowerUp(3000, 170, 'shield'));
 
         // Enemigos en nivel jugable - distribuidos
         this.enemies.push(new Enemy(300, 450, 'normal'));
@@ -945,7 +945,7 @@ class Level {
 // ============================================
 class Game {
     constructor() {
-        this.state = 'menu';
+        this.state = 'loading';
         this.currentLevel = 1;
         this.level = null;
         this.player = null;
@@ -954,8 +954,7 @@ class Game {
         this.cameraX = 0;
         this.message = '';
         this.messageTimer = 0;
-
-        this.playGame();
+        this.loadingTimer = 90;
     }
 
     playGame() {
@@ -970,6 +969,12 @@ class Game {
     }
 
     update() {
+        if (this.state === 'loading') {
+            this.loadingTimer--;
+            if (this.loadingTimer <= 0) this.state = 'menu';
+            return;
+        }
+
         if (this.state !== 'playing') return;
 
         this.player.update(this.level.platforms);
@@ -979,7 +984,7 @@ class Game {
         for (let enemy of this.level.enemies) {
             if (this.checkCollision(this.player, enemy) && this.player.damageTimer <= 0) {
                 this.player.takeDamage();
-                if (this.player.lives < 0) {
+                if (this.player.lives <= 0) {
                     this.state = 'gameOver';
                     this.saveBestScore();
                 }
@@ -991,7 +996,7 @@ class Game {
             for (let flame of trap.getFlamePositions()) {
                 if (this.checkCircleCollision(this.player, flame) && this.player.damageTimer <= 0) {
                     this.player.takeDamage();
-                    if (this.player.lives < 0) {
+                    if (this.player.lives <= 0) {
                         this.state = 'gameOver';
                         this.saveBestScore();
                     }
@@ -1046,9 +1051,22 @@ class Game {
     }
 
     draw() {
+        if (this.state === 'loading') {
+            this.drawLoading();
+            return;
+        }
+
         if (this.state === 'menu') {
             this.drawMenu();
-        } else if (this.state === 'playing' || this.state === 'levelComplete' || this.state === 'ending' || this.state === 'gameOver') {
+            return;
+        }
+
+        if (this.state === 'gameOver') {
+            this.drawGameOver();
+            return;
+        }
+
+        if (this.state === 'playing' || this.state === 'levelComplete' || this.state === 'ending') {
             this.level.draw(ctx);
             this.player.draw(ctx, this.cameraX);
             this.drawHUD();
@@ -1064,8 +1082,6 @@ class Game {
                 } else if (this.state === 'ending') {
                     this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
                     if (this.messageTimer === 0) this.state = 'gameOver';
-                } else if (this.state === 'gameOver') {
-                    this.drawGameOver();
                 }
             }
         }
@@ -1100,6 +1116,33 @@ class Game {
         ctx.shadowColor = '#000';
         ctx.shadowBlur = 10;
         ctx.fillText(text, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    }
+
+    drawLoading() {
+        ctx.fillStyle = '#0d1b2a';
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+        ctx.fillStyle = '#FF1493';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('CARGANDO...', SCREEN_WIDTH / 2, 230);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '28px Arial';
+        ctx.fillText('Preparando la aventura BTS', SCREEN_WIDTH / 2, 285);
+
+        const barWidth = 420;
+        const barX = SCREEN_WIDTH / 2 - barWidth / 2;
+        const barY = 340;
+        const progress = 1 - Math.max(0, this.loadingTimer) / 90;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(barX, barY, barWidth, 26);
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(barX, barY, barWidth * progress, 26);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(barX, barY, barWidth, 26);
     }
 
     drawMenu() {
@@ -1174,11 +1217,10 @@ class Game {
     }
 
     retry() {
-        this.state = 'menu';
         this.currentLevel = 1;
         this.score = 0;
-        this.level = null;
-        this.player = null;
+        this.loadLevel(1);
+        this.state = 'playing';
         this.messageTimer = 0;
         this.cameraX = 0;
         document.getElementById('hud').innerHTML = '';
