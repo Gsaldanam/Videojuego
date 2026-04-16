@@ -63,6 +63,9 @@ class TiledSpriteManager {
 
     async loadMemberPortraits() {
         const members = {
+            jin: [
+                'assets/members/jin.png'
+            ],
             jimin: [
                 'assets/members/jimin.png'
             ],
@@ -91,7 +94,7 @@ class TiledSpriteManager {
     getMemberPortrait(memberName) {
         const normalized = (memberName || '').toLowerCase();
         const aliases = {
-            jin: 'jimin',
+            jin: 'jin',
             jimin: 'jimin',
             jungkook: 'jungkook',
             v: 'v'
