@@ -975,6 +975,7 @@ class Game {
         this.player = null;
         this.score = 0;
         this.bestScore = this.loadBestScore();
+        this.volume = this.loadVolume();
         this.cameraX = 0;
         this.message = '';
         this.messageTimer = 0;
@@ -1080,6 +1081,13 @@ class Game {
 
         if (this.state === 'menu') {
             this.drawOverlayBackground();
+            return;
+        }
+
+        if (this.state === 'paused') {
+            this.level.draw(ctx);
+            this.player.draw(ctx, this.cameraX);
+            this.drawHUD();
             return;
         }
 
@@ -1212,18 +1220,60 @@ class Game {
         const menuOverlay = document.getElementById('menuOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const victoryOverlay = document.getElementById('victoryOverlay');
+        const pauseOverlay = document.getElementById('pauseOverlay');
         const gameOverScore = document.getElementById('gameOverScore');
         const victoryScore = document.getElementById('victoryScore');
+        const volumeButton = document.getElementById('volumeButton');
 
-        if (!menuOverlay || !gameOverOverlay || !victoryOverlay) return;
+        if (!menuOverlay || !gameOverOverlay || !victoryOverlay || !pauseOverlay) return;
 
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
         menuOverlay.classList.toggle('hidden', this.state !== 'menu');
         gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
         victoryOverlay.classList.toggle('hidden', this.state !== 'victory');
+        pauseOverlay.classList.toggle('hidden', this.state !== 'paused');
 
         if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
         if (victoryScore) victoryScore.textContent = `Puntuación final: ${this.score}`;
+        if (volumeButton) volumeButton.textContent = `VOLUMEN: ${Math.round(this.volume * 100)}%`;
+    }
+
+    loadVolume() {
+        const saved = localStorage.getItem('btsGameVolume');
+        const parsed = saved !== null ? parseFloat(saved) : 1;
+        return Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : 1;
+    }
+
+    saveVolume() {
+        localStorage.setItem('btsGameVolume', String(this.volume));
+    }
+
+    toggleVolume() {
+        this.volume = this.volume > 0 ? 0 : 1;
+        this.saveVolume();
+        this.syncOverlays();
+    }
+
+    openPauseMenu() {
+        if (this.state !== 'playing') return;
+        this.state = 'paused';
+        this.syncOverlays();
+    }
+
+    closePauseMenu() {
+        if (this.state !== 'paused') return;
+        this.state = 'playing';
+        this.syncOverlays();
+    }
+
+    togglePause() {
+        if (this.state === 'playing') this.openPauseMenu();
+        else if (this.state === 'paused') this.closePauseMenu();
+    }
+
+    showModePreview() {
+        const note = document.getElementById('pauseModeNote');
+        if (note) note.textContent = 'Modo de juego: próximamente (Arcade, Desafío, Hardcore)';
     }
 
     loadBestScore() {
@@ -1336,7 +1386,12 @@ canvas.addEventListener('click', (e) => {
 // ============================================
 window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
-    if (e.key === 'Escape') location.reload();
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        if (game && (game.state === 'playing' || game.state === 'paused')) {
+            game.togglePause();
+        }
+    }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -1358,10 +1413,16 @@ window.addEventListener('load', () => {
     const retryButton = document.getElementById('retryButton');
     const saveWinnerButton = document.getElementById('saveWinnerButton');
     const winnerNameInput = document.getElementById('winnerNameInput');
+    const resumeButton = document.getElementById('resumeButton');
+    const volumeButton = document.getElementById('volumeButton');
+    const modeButton = document.getElementById('modeButton');
 
     if (playButton) playButton.addEventListener('click', () => game.startGame());
     if (retryButton) retryButton.addEventListener('click', () => game.retry());
     if (saveWinnerButton) saveWinnerButton.addEventListener('click', () => game.submitWinnerName());
+    if (resumeButton) resumeButton.addEventListener('click', () => game.closePauseMenu());
+    if (volumeButton) volumeButton.addEventListener('click', () => game.toggleVolume());
+    if (modeButton) modeButton.addEventListener('click', () => game.showModePreview());
     if (winnerNameInput) {
         winnerNameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') game.submitWinnerName();

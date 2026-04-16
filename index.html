@@ -109,6 +109,16 @@
             transform: translateY(-1px);
         }
 
+        .overlay-button.secondary {
+            background: linear-gradient(180deg, #6c63ff, #4438b5);
+        }
+
+        .overlay-button.ghost {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+        }
+
         .overlay-input {
             width: 320px;
             max-width: 80%;
@@ -124,6 +134,45 @@
 
         .overlay-input::placeholder {
             color: rgba(255, 255, 255, 0.65);
+        }
+
+        .pause-card {
+            width: min(360px, 86%);
+            padding: 24px 22px 20px;
+            border-radius: 18px;
+            background: rgba(8, 15, 28, 0.96);
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 24px rgba(255, 215, 0, 0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .pause-title {
+            font-size: 2.4em;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+        }
+
+        .pause-subtitle {
+            color: rgba(255,255,255,0.85);
+            font-size: 1em;
+            margin-bottom: 6px;
+        }
+
+        .pause-actions {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pause-mini-note {
+            font-size: 0.85em;
+            color: rgba(255,255,255,0.65);
+            margin-top: 4px;
         }
 
         .controls {
@@ -328,6 +377,19 @@
                 <input id="winnerNameInput" class="overlay-input" type="text" maxlength="20" placeholder="Escribe tu nombre" />
                 <button id="saveWinnerButton" class="overlay-button">GUARDAR PUNTUACIÓN</button>
             </div>
+
+            <div id="pauseOverlay" class="overlay hidden">
+                <div class="pause-card">
+                    <div class="pause-title">PAUSA</div>
+                    <div class="pause-subtitle">El juego está detenido</div>
+                    <div class="pause-actions">
+                        <button id="resumeButton" class="overlay-button">REANUDAR</button>
+                        <button id="volumeButton" class="overlay-button secondary">VOLUMEN: 100%</button>
+                        <button id="modeButton" class="overlay-button ghost">CAMBIAR MODO DE JUEGO</button>
+                    </div>
+                    <div id="pauseModeNote" class="pause-mini-note">Próximamente: modos Arcade, Desafío y Hardcore</div>
+                </div>
+            </div>
         </div>
         
         <div id="hud">
@@ -346,7 +408,7 @@
             <h3>⌨️ CONTROLES</h3>
             <p><span class="key">←</span> <span class="key">→</span> Mover</p>
             <p><span class="key">ESPACIO</span> Saltar</p>
-            <p><span class="key">ESC</span> Menú</p>
+            <p><span class="key">ESC</span> Pausa / reanudar</p>
             <p style="margin-top: 15px; font-size: 0.85em;">💡 Recoge monedas, evita enemigos y llega a la meta en cada nivel</p>
         </div>
 
