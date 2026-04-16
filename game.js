@@ -491,7 +491,7 @@ class Player {
 
         // Movimiento horizontal
         this.x += this.vx;
-        if (this.x < 0) this.x = 0;
+        if (this.x < 30) this.x = 30;
         if (this.x + this.width > 10000) this.x = 10000 - this.width;
 
         // Colisión con plataformas
@@ -916,7 +916,7 @@ class Game {
         // Monedas
         for (let i = this.level.coins.length - 1; i >= 0; i--) {
             let coin = this.level.coins[i];
-            if (this.checkCollision(this.player, coin)) {
+            if (this.checkCircleCollision(this.player, coin)) {
                 this.score += coin.value;
                 this.level.coins.splice(i, 1);
             }
@@ -934,7 +934,7 @@ class Game {
         }
 
         // Meta
-        if (this.checkCollision(this.player, { x: this.level.goalX - 20, y: this.level.goalY - 20, width: 40, height: 40 })) {
+        if (this.checkCircleCollision(this.player, { x: this.level.goalX, y: this.level.goalY, radius: 30 })) {
             this.score += 500;
             if (this.currentLevel < 6) {
                 this.state = 'levelComplete';
