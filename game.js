@@ -127,13 +127,13 @@ class TiledSpriteManager {
                 yOffset: 40,
                 srcPad: 1,
                 cropTop: 14,
-                cropLeftRatio: 0.58,
-                cropWidthRatio: 0.2,
+                fixedSrcX: 64,
+                fixedSrcW: 64,
                 filter: 'saturate(1.2) contrast(1.18) brightness(1.02)',
                 paths: [
-                    'tilemap-backgrounds.png',
-                    './Tilemap/tilemap-backgrounds.png',
-                    '../Tilemap/tilemap-backgrounds.png'
+                    'tilemap-backgrounds_packed.png',
+                    './Tilemap/tilemap-backgrounds_packed.png',
+                    '../Tilemap/tilemap-backgrounds_packed.png'
                 ]
             },
             {
@@ -143,8 +143,8 @@ class TiledSpriteManager {
                 yOffset: 95,
                 srcPad: 1,
                 cropTop: 10,
-                cropLeftRatio: 0.78,
-                cropWidthRatio: 0.2,
+                fixedSrcX: 128,
+                fixedSrcW: 64,
                 filter: 'saturate(1.28) contrast(1.24) brightness(1.04)',
                 paths: [
                     'tilemap-backgrounds_packed.png',
@@ -166,6 +166,8 @@ class TiledSpriteManager {
                     yOffset: layer.yOffset,
                     srcPad: layer.srcPad || 0,
                     cropTop: layer.cropTop || 0,
+                    fixedSrcX: layer.fixedSrcX,
+                    fixedSrcW: layer.fixedSrcW,
                     cropLeftRatio: layer.cropLeftRatio ?? 0,
                     cropWidthRatio: layer.cropWidthRatio ?? 1,
                     filter: layer.filter || 'none'
@@ -348,10 +350,12 @@ class TiledSpriteManager {
             const srcPad = Math.max(0, Math.min(layer.srcPad || 0, 2));
             const cropTop = Math.max(0, Math.min(layer.cropTop || 0, source.height - 2));
             const usableW = Math.max(1, source.width - srcPad * 2);
+            const fixedSrcW = Number.isFinite(layer.fixedSrcW) ? Math.max(1, Math.min(layer.fixedSrcW, usableW)) : null;
+            const fixedSrcX = Number.isFinite(layer.fixedSrcX) ? Math.max(srcPad, Math.min(layer.fixedSrcX, source.width - 1)) : null;
             const cropWidthRatio = Math.max(0.15, Math.min(layer.cropWidthRatio ?? 1, 1));
             const cropLeftRatio = Math.max(0, Math.min(layer.cropLeftRatio ?? 0, 1 - cropWidthRatio));
-            const srcX = srcPad + Math.floor(usableW * cropLeftRatio);
-            const srcW = Math.max(1, Math.floor(usableW * cropWidthRatio));
+            const srcX = fixedSrcX ?? (srcPad + Math.floor(usableW * cropLeftRatio));
+            const srcW = fixedSrcW ?? Math.max(1, Math.floor(usableW * cropWidthRatio));
             const srcH = Math.max(1, source.height - srcPad * 2 - cropTop);
             const scale = layer.scale || 3;
             const drawW = srcW * scale;
