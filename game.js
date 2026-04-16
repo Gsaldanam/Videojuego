@@ -1,14 +1,16 @@
 // ============================================
-// MARIO BROS BTS - VERSIÓN WEB (JavaScript)
+// MARIO BROS BTS - VERSIÓN WEB v2.0 (MEJORADO)
 // ============================================
 
-// Seleccionar canvas y contexto
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Constantes
-const GRAVITY = 0.5;
-const JUMP_POWER = -12;
+// Constantes de Física
+const GRAVITY = 0.6;
+const JUMP_POWER = -13;
+const MAX_FALL_SPEED = 16;
+const FRICTION = 0.85;
+const ACCELERATION = 0.5;
 const SCREEN_WIDTH = canvas.width;
 const SCREEN_HEIGHT = canvas.height;
 const FPS = 60;
@@ -18,31 +20,34 @@ let game;
 let keys = {};
 
 // ============================================
-// CLASE: Particle (Partículas)
+// CLASE: Particle (Partículas mejoradas)
 // ============================================
 class Particle {
-    constructor(x, y, color = '#FFD700') {
+    constructor(x, y, color = '#FFD700', vx = 0, vy = 0) {
         this.x = x;
         this.y = y;
-        this.vx = (Math.random() - 0.5) * 4;
-        this.vy = Math.random() * -3 - 2;
+        this.vx = vx || (Math.random() - 0.5) * 6;
+        this.vy = vy || (Math.random() * -4 - 1);
         this.color = color;
-        this.lifetime = 30;
-        this.maxLifetime = 30;
+        this.lifetime = 35;
+        this.maxLifetime = 35;
+        this.size = Math.random() * 3 + 2;
     }
 
     update() {
-        this.vy += GRAVITY;
+        this.vy += GRAVITY * 0.5;
+        this.vx *= FRICTION;
         this.x += this.vx;
         this.y += this.vy;
         this.lifetime--;
+        this.size *= 0.97;
     }
 
     draw(ctx, cameraX) {
         const opacity = this.lifetime / this.maxLifetime;
         ctx.globalAlpha = opacity;
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - cameraX, this.y, 4, 4);
+        ctx.fillRect(this.x - cameraX - this.size/2, this.y - this.size/2, this.size, this.size);
         ctx.globalAlpha = 1;
     }
 
@@ -52,74 +57,109 @@ class Particle {
 }
 
 // ============================================
-// CLASE: PowerUp
+// CLASE: PowerUp (Mejorado)
 // ============================================
 class PowerUp {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
         this.type = type;
-        this.width = 20;
-        this.height = 20;
+        this.width = 24;
+        this.height = 24;
         this.rotating = 0;
+        this.bobbing = 0;
 
         if (type === 'shield') {
             this.color = [0, 150, 255];
+            this.icon = '🛡️';
         } else if (type === 'speed') {
             this.color = [255, 215, 0];
+            this.icon = '⚡';
         } else if (type === 'health') {
-            this.color = [255, 50, 50];
+            this.color = [255, 50, 100];
+            this.icon = '❤️';
         }
     }
 
     draw(ctx, cameraX) {
-        this.rotating += 5;
+        this.rotating += 6;
+        this.bobbing += 0.05;
+        
+        const x = this.x - cameraX;
+        const y = this.y + Math.sin(this.bobbing) * 3;
+
         ctx.save();
-        ctx.translate(this.x - cameraX + 10, this.y + 10);
+        ctx.translate(x + 12, y + 12);
         ctx.rotate((this.rotating * Math.PI) / 180);
 
-        ctx.fillStyle = `rgb(${this.color[0]}, ${this.color[1]}, ${this.color[2]})`;
-        ctx.fillRect(-10, -10, 20, 20);
+        // Cuadro externo
+        ctx.strokeStyle = `rgb(${this.color[0]}, ${this.color[1]}, ${this.color[2]})`;
+        ctx.lineWidth = 3;
+        ctx.fillStyle = `rgba(${this.color[0]}, ${this.color[1]}, ${this.color[2]}, 0.3)`;
+        ctx.fillRect(-12, -12, 24, 24);
+        ctx.strokeRect(-12, -12, 24, 24);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-10, -10, 20, 20);
+        // Brillo externo
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-14, -14, 28, 28);
 
         ctx.restore();
     }
 }
 
 // ============================================
-// CLASE: Coin (Moneda)
+// CLASE: Coin (Moneda mejorada)
 // ============================================
 class Coin {
     constructor(x, y, special = false) {
         this.x = x;
         this.y = y;
-        this.radius = 5;
+        this.radius = special ? 7 : 5;
         this.special = special;
-        this.bobbing = 0;
+        this.bobbing = Math.random() * Math.PI * 2;
         this.value = special ? 50 : 10;
+        this.collected = false;
     }
 
     update() {
-        this.bobbing += 0.05;
+        this.bobbing += 0.08;
     }
 
     draw(ctx, cameraX) {
-        ctx.fillStyle = this.special ? '#FFD700' : '#FFB800';
-        ctx.beginPath();
-        ctx.arc(this.x - cameraX, this.y + Math.sin(this.bobbing) * 2, this.radius, 0, Math.PI * 2);
-        ctx.fill();
+        const x = this.x - cameraX;
+        const y = this.y + Math.sin(this.bobbing) * 3;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        if (this.special) {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Brillo especial
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.arc(x - 2, y - 2, this.radius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = '#FFB800';
+            ctx.beginPath();
+            ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.7)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
     }
 }
 
 // ============================================
-// CLASE: Platform (Plataforma)
+// CLASE: Platform (Plataforma mejorada con tipos)
 // ============================================
 class Platform {
     constructor(x, y, width, height, type = 'normal') {
@@ -131,11 +171,21 @@ class Platform {
         this.moving = 0;
         this.moveDir = 1;
         this.moveRange = 100;
+        this.color = this.getColor();
+    }
+
+    getColor() {
+        switch(this.type) {
+            case 'normal': return [76, 175, 80];
+            case 'moving': return [33, 150, 243];
+            case 'spike': return [244, 67, 54];
+            default: return [100, 100, 100];
+        }
     }
 
     update() {
         if (this.type === 'moving') {
-            this.moving += 1 * this.moveDir;
+            this.moving += 1.5 * this.moveDir;
             if (Math.abs(this.moving) > this.moveRange) {
                 this.moveDir *= -1;
             }
@@ -143,21 +193,36 @@ class Platform {
     }
 
     draw(ctx, cameraX) {
-        if (this.type === 'normal') {
-            ctx.fillStyle = '#4CAF50';
-        } else if (this.type === 'moving') {
-            ctx.fillStyle = '#2196F3';
-        } else if (this.type === 'spike') {
-            ctx.fillStyle = '#FF1744';
-        }
-
         const x = this.x - cameraX + this.moving;
+        const [r, g, b] = this.color;
+
+        // Plataforma principal
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(x, this.y, this.width, this.height);
 
+        // Borde oscuro
+        ctx.strokeStyle = `rgb(${Math.max(0, r-50)}, ${Math.max(0, g-50)}, ${Math.max(0, b-50)})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, this.y, this.width, this.height);
+
+        // Luz superior
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, this.y);
+        ctx.lineTo(x + this.width, this.y);
+        ctx.stroke();
+
+        // Spikes
         if (this.type === 'spike') {
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, this.y, this.width, this.height);
+            ctx.fillStyle = 'rgb(200, 30, 30)';
+            for (let i = 0; i < this.width; i += 15) {
+                ctx.beginPath();
+                ctx.moveTo(x + i, this.y);
+                ctx.lineTo(x + i + 7, this.y - 8);
+                ctx.lineTo(x + i + 14, this.y);
+                ctx.fill();
+            }
         }
     }
 
@@ -172,7 +237,84 @@ class Platform {
 }
 
 // ============================================
-// CLASE: Enemy (Enemigo)
+// CLASE: FireTrap (Trampa de fuego giratorio)
+// ============================================
+class FireTrap {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 30;
+        this.rotation = 0;
+        this.rotationSpeed = 0.08;
+        this.fireSize = 12;
+        this.flames = [];
+        
+        // Crear llamas alrededor
+        for (let i = 0; i < 4; i++) {
+            this.flames.push({
+                angle: (i * Math.PI / 2),
+                distance: this.radius
+            });
+        }
+    }
+
+    update() {
+        this.rotation += this.rotationSpeed;
+    }
+
+    draw(ctx, cameraX) {
+        const x = this.x - cameraX;
+        const y = this.y;
+
+        // Centro del mecanismo
+        ctx.fillStyle = '#404040';
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Dibujar llamas giratorias
+        for (let flame of this.flames) {
+            const flameAngle = flame.angle + this.rotation;
+            const fx = x + Math.cos(flameAngle) * flame.distance;
+            const fy = y + Math.sin(flameAngle) * flame.distance;
+
+            // Llama naranja
+            ctx.fillStyle = '#FF6F00';
+            ctx.beginPath();
+            ctx.ellipse(fx, fy, this.fireSize * 1.2, this.fireSize * 1.5, flameAngle, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Interior amarillo
+            ctx.fillStyle = '#FFD600';
+            ctx.beginPath();
+            ctx.ellipse(fx, fy, this.fireSize * 0.6, this.fireSize * 0.9, flameAngle, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Luz
+            ctx.fillStyle = 'rgba(255, 200, 0, 0.6)';
+            ctx.beginPath();
+            ctx.arc(fx - 3, fy - 3, this.fireSize * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    getFlamePositions() {
+        const positions = [];
+        for (let flame of this.flames) {
+            const flameAngle = flame.angle + this.rotation;
+            const fx = this.x + Math.cos(flameAngle) * flame.distance;
+            const fy = this.y + Math.sin(flameAngle) * flame.distance;
+            positions.push({ x: fx, y: fy, radius: this.fireSize });
+        }
+        return positions;
+    }
+}
+
+// ============================================
+// CLASE: Enemy (Enemigo mejorado)
 // ============================================
 class Enemy {
     constructor(x, y, type = 'normal') {
@@ -181,112 +323,112 @@ class Enemy {
         this.width = 30;
         this.height = 30;
         this.type = type;
+        this.vx = 0;
+        this.vy = 0;
 
-        if (type === 'normal') {
-            this.speed = 2;
-            this.color = [220, 50, 50];
-        } else if (type === 'fast') {
-            this.speed = 4;
-            this.color = [150, 20, 20];
-        } else if (type === 'flying') {
-            this.speed = 2.5;
-            this.vspeed = 0.5;
-            this.color = [200, 100, 50];
-            this.minY = Math.max(0, y - 80);
-            this.maxY = y + 80;
-        } else if (type === 'shooter') {
-            this.speed = 1.5;
-            this.color = [100, 50, 150];
-        } else if (type === 'teleport') {
-            this.speed = 3;
-            this.color = [220, 50, 220];
-            this.teleportTimer = 180;
-            this.teleportCooldown = 180;
-        }
-
+        this.setupType();
         this.direction = Math.random() > 0.5 ? 1 : -1;
     }
 
-    update(platforms) {
-        if (this.type === 'normal' || this.type === 'fast' || this.type === 'shooter') {
-            this.x += this.speed * this.direction;
-
-            // Rebotar en los bordes de plataformas
-            for (let platform of platforms) {
-                const rect = platform.getRect();
-                if (this.x < rect.x - 100 || this.x > rect.x + rect.width + 100) {
-                    this.direction *= -1;
-                }
-            }
+    setupType() {
+        switch(this.type) {
+            case 'normal':
+                this.speed = 2;
+                this.color = [220, 50, 50];
+                break;
+            case 'fast':
+                this.speed = 4;
+                this.color = [150, 20, 20];
+                break;
+            case 'flying':
+                this.speed = 2.5;
+                this.vspeed = 0.5;
+                this.color = [200, 100, 50];
+                this.minY = this.y - 80;
+                this.maxY = this.y + 80;
+                break;
+            case 'shooter':
+                this.speed = 1.5;
+                this.color = [100, 50, 150];
+                break;
+            case 'teleport':
+                this.speed = 3;
+                this.color = [220, 50, 220];
+                this.teleportTimer = 180;
+                this.teleportCooldown = 180;
+                break;
         }
+    }
 
+    update(platforms) {
         if (this.type === 'flying') {
             this.x += this.speed * this.direction;
             this.y += this.vspeed;
-
-            if (this.y <= this.minY || this.y >= this.maxY) {
-                this.vspeed *= -1;
-            }
-
-            for (let platform of platforms) {
-                const rect = platform.getRect();
-                if (this.x < rect.x - 200 || this.x > rect.x + rect.width + 200) {
-                    this.direction *= -1;
-                }
-            }
-        }
-
-        if (this.type === 'teleport') {
+            if (this.y <= this.minY || this.y >= this.maxY) this.vspeed *= -1;
+        } else if (this.type === 'teleport') {
             this.teleportTimer--;
             if (this.teleportTimer <= 0) {
                 this.x = Math.random() * (SCREEN_WIDTH - 100) + 50;
                 this.y = Math.random() * 100 + 100;
                 this.teleportTimer = this.teleportCooldown;
             }
-
             this.x += this.speed * this.direction;
-            if (Math.random() > 0.99) {
+            if (Math.random() > 0.99) this.direction *= -1;
+        } else {
+            this.x += this.speed * this.direction;
+        }
+
+        // Rebotar
+        for (let platform of platforms) {
+            const rect = platform.getRect();
+            if (this.x < rect.x - 150 || this.x > rect.x + rect.width + 150) {
                 this.direction *= -1;
             }
         }
     }
 
     draw(ctx, cameraX) {
-        const r = this.color[0];
-        const g = this.color[1];
-        const b = this.color[2];
+        const [r, g, b] = this.color;
+        const x = this.x - cameraX;
+        const y = this.y;
 
+        // Cuerpo principal
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillRect(this.x - cameraX, this.y, this.width, this.height);
+        ctx.fillRect(x, y, this.width, this.height);
+
+        // Borde
+        ctx.strokeStyle = `rgb(${Math.max(0, r-80)}, ${Math.max(0, g-80)}, ${Math.max(0, b-80)})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, this.width, this.height);
 
         // Ojos
         ctx.fillStyle = '#FFF';
-        ctx.fillRect(this.x - cameraX + 5, this.y + 8, 6, 6);
-        ctx.fillRect(this.x - cameraX + 19, this.y + 8, 6, 6);
+        ctx.fillRect(x + 5, y + 8, 6, 6);
+        ctx.fillRect(x + 19, y + 8, 6, 6);
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x - cameraX + 7, this.y + 10, 2, 2);
-        ctx.fillRect(this.x - cameraX + 21, this.y + 10, 2, 2);
+        ctx.fillRect(x + 7, y + 10, 2, 2);
+        ctx.fillRect(x + 21, y + 10, 2, 2);
 
-        // Alas para enemigos voladores
+        // Alas volador
         if (this.type === 'flying') {
-            ctx.fillStyle = 'rgba(200, 100, 50, 0.7)';
-            ctx.fillRect(this.x - cameraX - 5, this.y + 10, 5, 8);
-            ctx.fillRect(this.x - cameraX + 30, this.y + 10, 5, 8);
+            ctx.fillStyle = 'rgba(200, 100, 50, 0.8)';
+            ctx.fillRect(x - 8, y + 8, 6, 12);
+            ctx.fillRect(x + 32, y + 8, 6, 12);
         }
 
-        // Parpadeo para teletransportadores
+        // Parpadeo teletransportador
         if (this.type === 'teleport') {
-            const alpha = Math.sin(this.teleportTimer / 30) * 0.3 + 0.7;
+            const alpha = Math.sin(this.teleportTimer / 30) * 0.4 + 0.6;
             ctx.globalAlpha = alpha;
             ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            ctx.fillRect(this.x - cameraX, this.y, this.width, this.height);
+            ctx.fillRect(x, y, this.width, this.height);
             ctx.globalAlpha = 1;
         }
     }
 }
 
 // ============================================
-// CLASE: Player (Jugador)
+// CLASE: Player (Jugador mejorado)
 // ============================================
 class Player {
     constructor() {
@@ -296,9 +438,11 @@ class Player {
         this.height = 35;
         this.vx = 0;
         this.vy = 0;
-        this.speed = 4;
+        this.speed = 0;
+        this.maxSpeed = 5;
         this.onGround = false;
         this.particles = [];
+        this.jumpBuffer = 0;
 
         // Power-ups
         this.shieldTime = 0;
@@ -307,26 +451,43 @@ class Player {
     }
 
     handleInput() {
-        this.vx = 0;
-        if (keys['ArrowLeft'] || keys['a']) this.vx = -this.speed;
-        if (keys['ArrowRight'] || keys['d']) this.vx = this.speed;
-        if ((keys[' '] || keys['w']) && this.onGround) {
-            this.vy = JUMP_POWER;
-            this.onGround = false;
+        // Aceleración horizontal mejorada
+        if (keys['ArrowLeft'] || keys['a']) {
+            this.speed = Math.max(this.speed - ACCELERATION, -this.maxSpeed);
+        } else if (keys['ArrowRight'] || keys['d']) {
+            this.speed = Math.min(this.speed + ACCELERATION, this.maxSpeed);
+        } else {
+            this.speed *= FRICTION;
+        }
 
-            // Crear partículas de salto
-            for (let i = 0; i < 5; i++) {
-                this.particles.push(new Particle(this.x + 15, this.y + 35, '#FFD700'));
+        this.vx = this.speed;
+
+        // Jump buffering
+        if ((keys[' '] || keys['w']) && this.jumpBuffer < 4) {
+            this.jumpBuffer++;
+            if (this.jumpBuffer === 1 && this.onGround) {
+                this.vy = JUMP_POWER;
+                this.onGround = false;
+
+                // Partículas de salto
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 * i) / 8;
+                    const vx = Math.cos(angle) * 3;
+                    const vy = Math.sin(angle) * 3;
+                    this.particles.push(new Particle(this.x + 15, this.y + 35, '#FFD700', vx, vy));
+                }
             }
+        } else {
+            this.jumpBuffer = 0;
         }
     }
 
     update(platforms) {
         this.handleInput();
 
-        // Gravedad
+        // Gravedad mejorada
         this.vy += GRAVITY;
-        if (this.vy > 15) this.vy = 15;
+        if (this.vy > MAX_FALL_SPEED) this.vy = MAX_FALL_SPEED;
 
         // Movimiento horizontal
         this.x += this.vx;
@@ -337,25 +498,19 @@ class Player {
         this.onGround = false;
         for (let platform of platforms) {
             const rect = platform.getRect();
-            if (
-                this.x + this.width > rect.x &&
-                this.x < rect.x + rect.width &&
-                this.y + this.height >= rect.y &&
-                this.y + this.height <= rect.y + rect.height + 10 &&
-                this.vy >= 0
-            ) {
-                this.y = rect.y - this.height;
-                this.vy = 0;
-                this.onGround = true;
+            
+            // Colisión superior/inferior
+            if (this.x + this.width > rect.x && this.x < rect.x + rect.width) {
+                if (this.vy >= 0 && this.y + this.height >= rect.y && this.y + this.height <= rect.y + rect.height + 15) {
+                    this.y = rect.y - this.height;
+                    this.vy = 0;
+                    this.onGround = true;
 
-                if (platform.type === 'spike') {
-                    if (this.shieldTime <= 0) {
-                        this.lives--;
-                        this.shieldTime = 0;
-                    } else {
-                        this.shieldTime = 0;
+                    if (platform.type === 'spike') {
+                        this.takeDamage();
+                        this.y -= 20;
+                        this.vy = -8;
                     }
-                    this.y -= 20;
                 }
             }
         }
@@ -366,47 +521,70 @@ class Player {
             this.reset();
         }
 
-        // Actualizar power-ups
+        // Power-ups
         this.shieldTime--;
         this.speedTime--;
 
-        // Actualizar partículas
-        for (let particle of this.particles) {
-            particle.update();
-        }
+        // Partículas
+        for (let p of this.particles) p.update();
         this.particles = this.particles.filter(p => p.isAlive());
 
         // Movimiento vertical
         this.y += this.vy;
     }
 
-    draw(ctx, cameraX) {
-        // Cuerpo
-        if (this.speedTime > 0) {
-            ctx.fillStyle = '#C77DFF';
+    takeDamage() {
+        if (this.shieldTime <= 0) {
+            this.lives--;
+            this.shieldTime = 0;
         } else {
-            ctx.fillStyle = '#FFEB3B';
+            this.shieldTime = 0;
+            for (let i = 0; i < 15; i++) {
+                this.particles.push(new Particle(this.x + 15, this.y + 17, '#0096FF'));
+            }
         }
-        ctx.fillRect(this.x - cameraX, this.y, this.width, this.height);
+    }
+
+    draw(ctx, cameraX) {
+        const x = this.x - cameraX;
+        const y = this.y;
+
+        // Cuerpo
+        const bodyColor = this.speedTime > 0 ? [199, 125, 255] : [255, 235, 59];
+        ctx.fillStyle = `rgb(${bodyColor[0]}, ${bodyColor[1]}, ${bodyColor[2]})`;
+        ctx.fillRect(x, y, this.width, this.height);
+
+        // Borde
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, this.width, this.height);
 
         // Ojos
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x - cameraX + 7, this.y + 8, 4, 4);
-        ctx.fillRect(this.x - cameraX + 19, this.y + 8, 4, 4);
+        ctx.fillRect(x + 7, y + 8, 5, 5);
+        ctx.fillRect(x + 18, y + 8, 5, 5);
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(x + 8, y + 9, 2, 2);
+        ctx.fillRect(x + 19, y + 9, 2, 2);
+
+        // Boca
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + 15, y + 22, 4, 0, Math.PI);
+        ctx.stroke();
 
         // Escudo
         if (this.shieldTime > 0) {
-            ctx.strokeStyle = 'rgba(0, 150, 255, 0.5)';
+            ctx.strokeStyle = `rgba(0, 150, 255, ${0.3 + (this.shieldTime % 10) * 0.07})`;
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(this.x - cameraX + 15, this.y + 17, 25, 0, Math.PI * 2);
+            ctx.arc(x + 15, y + 17, 28, 0, Math.PI * 2);
             ctx.stroke();
         }
 
         // Partículas
-        for (let particle of this.particles) {
-            particle.draw(ctx, cameraX);
-        }
+        for (let p of this.particles) p.draw(ctx, cameraX);
     }
 
     reset() {
@@ -414,11 +592,12 @@ class Player {
         this.y = 200;
         this.vy = 0;
         this.vx = 0;
+        this.speed = 0;
     }
 }
 
 // ============================================
-// CLASE: Level (Niveles)
+// CLASE: Level (Niveles mejorados)
 // ============================================
 class Level {
     constructor(levelNumber) {
@@ -427,6 +606,7 @@ class Level {
         this.enemies = [];
         this.coins = [];
         this.powerups = [];
+        this.fireTraps = [];
         this.goalX = 0;
         this.goalY = 0;
         this.members = ['Jin', 'Suga', 'J-Hope', 'RM', 'Jungkook', 'V'];
@@ -436,19 +616,19 @@ class Level {
     }
 
     generateLevel() {
-        if (this.levelNumber === 1) this.generateLevelJin();
-        else if (this.levelNumber === 2) this.generateLevelSuga();
-        else if (this.levelNumber === 3) this.generateLevelJhope();
-        else if (this.levelNumber === 4) this.generateLevelRM();
-        else if (this.levelNumber === 5) this.generateLevelJungkook();
-        else if (this.levelNumber === 6) this.generateLevelV();
+        const methods = [
+            () => this.generateLevelJin(),
+            () => this.generateLevelSuga(),
+            () => this.generateLevelJhope(),
+            () => this.generateLevelRM(),
+            () => this.generateLevelJungkook(),
+            () => this.generateLevelV()
+        ];
+        methods[this.levelNumber - 1]();
     }
 
     generateLevelJin() {
-        // Suelo
         this.platforms.push(new Platform(0, 550, 3000, 50, 'normal'));
-
-        // Plataformas
         this.platforms.push(new Platform(150, 450, 150, 20, 'normal'));
         this.platforms.push(new Platform(400, 380, 150, 20, 'normal'));
         this.platforms.push(new Platform(650, 300, 150, 20, 'normal'));
@@ -460,25 +640,20 @@ class Level {
         this.platforms.push(new Platform(2150, 450, 150, 20, 'normal'));
         this.platforms.push(new Platform(2400, 200, 200, 20, 'normal'));
 
-        // Monedas
         for (let i = 0; i < 8; i++) {
             this.coins.push(new Coin(500 + i * 150, 350, i % 2 === 0));
         }
 
-        // Enemigos
         this.enemies.push(new Enemy(400, 350, 'normal'));
         this.enemies.push(new Enemy(900, 350, 'normal'));
         this.enemies.push(new Enemy(1400, 350, 'normal'));
 
-        // Meta
         this.goalX = 2450;
         this.goalY = 150;
     }
 
     generateLevelSuga() {
         this.platforms.push(new Platform(0, 550, 3500, 50, 'normal'));
-
-        // Plataformas normales y móviles
         this.platforms.push(new Platform(100, 480, 100, 20, 'normal'));
         this.platforms.push(new Platform(250, 400, 100, 20, 'moving'));
         this.platforms.push(new Platform(450, 350, 120, 20, 'normal'));
@@ -492,12 +667,10 @@ class Level {
         this.platforms.push(new Platform(2050, 280, 150, 20, 'normal'));
         this.platforms.push(new Platform(2300, 200, 200, 20, 'normal'));
 
-        // Monedas
         for (let i = 0; i < 10; i++) {
             this.coins.push(new Coin(400 + i * 170, 300 + (i % 2) * 50, i % 3 === 0));
         }
 
-        // Enemigos
         this.enemies.push(new Enemy(400, 320, 'normal'));
         this.enemies.push(new Enemy(850, 270, 'fast'));
         this.enemies.push(new Enemy(1250, 350, 'normal'));
@@ -509,8 +682,6 @@ class Level {
 
     generateLevelJhope() {
         this.platforms.push(new Platform(0, 550, 4000, 50, 'normal'));
-
-        // Plataformas con spikes
         this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
         this.platforms.push(new Platform(300, 420, 80, 20, 'spike'));
         this.platforms.push(new Platform(450, 400, 150, 20, 'normal'));
@@ -524,16 +695,13 @@ class Level {
         this.platforms.push(new Platform(2050, 320, 150, 20, 'normal'));
         this.platforms.push(new Platform(2300, 200, 200, 20, 'normal'));
 
-        // Monedas
         for (let i = 0; i < 12; i++) {
             this.coins.push(new Coin(300 + i * 140, 300 + (i % 3) * 40, i % 4 === 0));
         }
 
-        // Power-ups
         this.powerups.push(new PowerUp(650, 350, 'shield'));
         this.powerups.push(new PowerUp(1400, 300, 'speed'));
 
-        // Enemigos
         this.enemies.push(new Enemy(450, 370, 'normal'));
         this.enemies.push(new Enemy(850, 350, 'fast'));
         this.enemies.push(new Enemy(1250, 320, 'normal'));
@@ -545,8 +713,6 @@ class Level {
 
     generateLevelRM() {
         this.platforms.push(new Platform(0, 550, 5000, 50, 'normal'));
-
-        // Plataformas normales
         this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
         this.platforms.push(new Platform(300, 420, 100, 20, 'normal'));
         this.platforms.push(new Platform(500, 350, 120, 20, 'normal'));
@@ -559,16 +725,13 @@ class Level {
         this.platforms.push(new Platform(2100, 350, 100, 20, 'normal'));
         this.platforms.push(new Platform(2350, 250, 150, 20, 'normal'));
 
-        // Monedas
         for (let i = 0; i < 16; i++) {
             this.coins.push(new Coin(250 + i * 180, 280 + (i % 4) * 50, i % 3 === 0));
         }
 
-        // Power-ups
         this.powerups.push(new PowerUp(500, 320, 'shield'));
         this.powerups.push(new PowerUp(1200, 250, 'speed'));
 
-        // Enemigos voladores - NIVEL 4
         this.enemies.push(new Enemy(500, 250, 'flying'));
         this.enemies.push(new Enemy(950, 200, 'flying'));
         this.enemies.push(new Enemy(1400, 200, 'flying'));
@@ -582,8 +745,6 @@ class Level {
 
     generateLevelJungkook() {
         this.platforms.push(new Platform(0, 550, 5500, 50, 'normal'));
-
-        // Plataformas con muchos spikes
         this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
         this.platforms.push(new Platform(300, 400, 80, 20, 'spike'));
         this.platforms.push(new Platform(450, 420, 100, 20, 'normal'));
@@ -598,17 +759,18 @@ class Level {
         this.platforms.push(new Platform(2050, 200, 100, 20, 'spike'));
         this.platforms.push(new Platform(2200, 300, 150, 20, 'normal'));
 
-        // Monedas
+        // Trampa de fuego giratorio
+        this.fireTraps.push(new FireTrap(450, 330));
+        this.fireTraps.push(new FireTrap(1150, 280));
+
         for (let i = 0; i < 13; i++) {
             this.coins.push(new Coin(250 + i * 170, 300 + (i % 3) * 60, i % 3 === 0));
         }
 
-        // Power-ups
         this.powerups.push(new PowerUp(450, 390, 'shield'));
         this.powerups.push(new PowerUp(1150, 320, 'speed'));
         this.powerups.push(new PowerUp(1850, 290, 'health'));
 
-        // Enemigos disparadores - NIVEL 5
         this.enemies.push(new Enemy(450, 390, 'shooter'));
         this.enemies.push(new Enemy(800, 350, 'shooter'));
         this.enemies.push(new Enemy(1150, 320, 'shooter'));
@@ -622,8 +784,6 @@ class Level {
 
     generateLevelV() {
         this.platforms.push(new Platform(0, 550, 6000, 50, 'normal'));
-
-        // Plataformas complejas
         this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
         this.platforms.push(new Platform(300, 400, 100, 20, 'moving'));
         this.platforms.push(new Platform(500, 350, 120, 20, 'normal'));
@@ -641,18 +801,20 @@ class Level {
         this.platforms.push(new Platform(2800, 300, 150, 20, 'normal'));
         this.platforms.push(new Platform(3050, 150, 200, 20, 'normal'));
 
-        // Monedas (20 total)
+        // Múltiples trampas de fuego
+        this.fireTraps.push(new FireTrap(700, 250));
+        this.fireTraps.push(new FireTrap(1450, 220));
+        this.fireTraps.push(new FireTrap(2200, 190));
+
         for (let i = 0; i < 20; i++) {
             this.coins.push(new Coin(200 + i * 190, 250 + (i % 4) * 50, i % 2 === 0));
         }
 
-        // Power-ups (4 total)
         this.powerups.push(new PowerUp(500, 320, 'shield'));
         this.powerups.push(new PowerUp(1250, 350, 'speed'));
         this.powerups.push(new PowerUp(2000, 250, 'health'));
         this.powerups.push(new PowerUp(2800, 270, 'shield'));
 
-        // Enemigos teletransportadores - NIVEL 6 (¡El más difícil!)
         for (let i = 0; i < 8; i++) {
             this.enemies.push(new Enemy(300 + i * 350, 200 + Math.random() * 200, 'teleport'));
         }
@@ -662,45 +824,42 @@ class Level {
     }
 
     update() {
-        for (let platform of this.platforms) {
-            platform.update();
-        }
-
-        for (let enemy of this.enemies) {
-            enemy.update(this.platforms);
-        }
-
-        for (let coin of this.coins) {
-            coin.update();
-        }
+        for (let platform of this.platforms) platform.update();
+        for (let enemy of this.enemies) enemy.update(this.platforms);
+        for (let trap of this.fireTraps) trap.update();
+        for (let coin of this.coins) coin.update();
     }
 
     draw(ctx) {
-        // Fondo estrellado
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#0d1b2a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         for (let platform of this.platforms) platform.draw(ctx, game.cameraX);
+        for (let trap of this.fireTraps) trap.draw(ctx, game.cameraX);
         for (let coin of this.coins) coin.draw(ctx, game.cameraX);
         for (let powerup of this.powerups) powerup.draw(ctx, game.cameraX);
         for (let enemy of this.enemies) enemy.draw(ctx, game.cameraX);
 
-        // Meta
+        // Meta mejorada
+        const goalX = this.goalX - game.cameraX;
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(this.goalX - game.cameraX - 20, this.goalY - 20, 40, 40);
+        ctx.fillRect(goalX - 20, this.goalY - 20, 40, 40);
+        ctx.strokeStyle = '#FFA500';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(goalX - 20, this.goalY - 20, 40, 40);
         ctx.fillStyle = '#000';
-        ctx.font = 'bold 20px Arial';
+        ctx.font = 'bold 28px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('✓', this.goalX - game.cameraX, this.goalY);
+        ctx.fillText('✓', goalX, this.goalY + 8);
     }
 }
 
 // ============================================
-// CLASE: Game (Juego Principal)
+// CLASE: Game (Juego principal mejorado)
 // ============================================
 class Game {
     constructor() {
-        this.state = 'menu'; // menu, playing, levelComplete, gameOver, ending
+        this.state = 'menu';
         this.currentLevel = 1;
         this.level = null;
         this.player = null;
@@ -722,80 +881,60 @@ class Game {
         this.currentLevel = levelNumber;
         this.level = new Level(levelNumber);
         this.player = new Player();
-        this.player.x = 50;
-        this.player.y = 400;
     }
 
     update() {
         if (this.state !== 'playing') return;
 
         this.player.update(this.level.platforms);
-
-        // Cámara
         this.cameraX = Math.max(0, this.player.x - 300);
 
         // Colisión con enemigos
         for (let enemy of this.level.enemies) {
-            if (
-                this.player.x + this.player.width > enemy.x &&
-                this.player.x < enemy.x + enemy.width &&
-                this.player.y + this.player.height > enemy.y &&
-                this.player.y < enemy.y + enemy.height
-            ) {
-                if (this.player.shieldTime <= 0) {
-                    this.player.lives--;
-                    this.player.reset();
-                    if (this.player.lives < 0) {
-                        this.state = 'gameOver';
-                        this.saveBestScore();
-                    }
-                } else {
-                    this.player.shieldTime = 0;
+            if (this.checkCollision(this.player, enemy)) {
+                this.player.takeDamage();
+                if (this.player.lives < 0) {
+                    this.state = 'gameOver';
+                    this.saveBestScore();
                 }
             }
         }
 
-        // Colisión con monedas
+        // Colisión con trampas de fuego
+        for (let trap of this.level.fireTraps) {
+            for (let flame of trap.getFlamePositions()) {
+                if (this.checkCircleCollision(this.player, flame)) {
+                    this.player.takeDamage();
+                    if (this.player.lives < 0) {
+                        this.state = 'gameOver';
+                        this.saveBestScore();
+                    }
+                }
+            }
+        }
+
+        // Monedas
         for (let i = this.level.coins.length - 1; i >= 0; i--) {
             let coin = this.level.coins[i];
-            if (
-                this.player.x + this.player.width > coin.x - 10 &&
-                this.player.x < coin.x + 10 &&
-                this.player.y + this.player.height > coin.y - 10 &&
-                this.player.y < coin.y + 10
-            ) {
+            if (this.checkCollision(this.player, coin)) {
                 this.score += coin.value;
                 this.level.coins.splice(i, 1);
             }
         }
 
-        // Colisión con power-ups
+        // Power-ups
         for (let i = this.level.powerups.length - 1; i >= 0; i--) {
             let powerup = this.level.powerups[i];
-            if (
-                this.player.x + this.player.width > powerup.x &&
-                this.player.x < powerup.x + powerup.width &&
-                this.player.y + this.player.height > powerup.y &&
-                this.player.y < powerup.y + powerup.height
-            ) {
-                if (powerup.type === 'shield') {
-                    this.player.shieldTime = 300;
-                } else if (powerup.type === 'speed') {
-                    this.player.speedTime = 300;
-                } else if (powerup.type === 'health') {
-                    this.player.lives++;
-                }
+            if (this.checkCollision(this.player, powerup)) {
+                if (powerup.type === 'shield') this.player.shieldTime = 300;
+                else if (powerup.type === 'speed') this.player.speedTime = 300;
+                else if (powerup.type === 'health') this.player.lives++;
                 this.level.powerups.splice(i, 1);
             }
         }
 
         // Meta
-        if (
-            this.player.x + this.player.width > this.level.goalX &&
-            this.player.x < this.level.goalX + 40 &&
-            this.player.y + this.player.height > this.level.goalY &&
-            this.player.y < this.level.goalY + 40
-        ) {
+        if (this.checkCollision(this.player, { x: this.level.goalX - 20, y: this.level.goalY - 20, width: 40, height: 40 })) {
             this.score += 500;
             if (this.currentLevel < 6) {
                 this.state = 'levelComplete';
@@ -809,59 +948,76 @@ class Game {
         this.level.update();
     }
 
+    checkCollision(a, b) {
+        return a.x + a.width > b.x && a.x < b.x + b.width && a.y + a.height > b.y && a.y < b.y + b.height;
+    }
+
+    checkCircleCollision(player, circle) {
+        const px = player.x + player.width / 2;
+        const py = player.y + player.height / 2;
+        const dist = Math.sqrt((px - circle.x) ** 2 + (py - circle.y) ** 2);
+        return dist < player.width / 2 + circle.radius;
+    }
+
     draw() {
         this.level.draw(ctx);
         this.player.draw(ctx, this.cameraX);
+        this.drawHUD();
 
-        // HUD
-        this.updateHUD();
-
-        // Mensajes
         if (this.messageTimer > 0) {
             this.messageTimer--;
-            const messageElement = document.getElementById('message');
-
             if (this.state === 'levelComplete') {
-                messageElement.style.display = 'block';
-                messageElement.textContent = '✓ ¡NIVEL COMPLETO!';
+                this.drawMessage('✓ ¡NIVEL COMPLETO!', '#FFD700');
                 if (this.messageTimer === 0) {
                     this.loadLevel(this.currentLevel + 1);
                     this.state = 'playing';
-                    messageElement.style.display = 'none';
                 }
             } else if (this.state === 'ending') {
-                messageElement.style.display = 'block';
-                messageElement.textContent = '🎉 ¡GANASTE! 💜';
-                if (this.messageTimer === 0) {
-                    this.state = 'gameOver';
-                    messageElement.style.display = 'none';
-                }
+                this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
+                if (this.messageTimer === 0) this.state = 'gameOver';
             } else if (this.state === 'gameOver') {
-                messageElement.style.display = 'block';
-                messageElement.textContent = '💀 GAME OVER';
+                this.drawMessage('💀 GAME OVER', '#FF4444');
             }
         }
     }
 
-    updateHUD() {
-        document.getElementById('hudLevel').textContent = `${this.currentLevel}/6`;
-        document.getElementById('hudMember').textContent = this.level.memberName;
-        document.getElementById('hudScore').textContent = this.score;
-        document.getElementById('hudBest').textContent = this.bestScore;
-        document.getElementById('hudLives').textContent = this.player.lives;
-        document.getElementById('hudShield').textContent = this.player.shieldTime > 0 ? 'Sí ✓' : 'No';
-        document.getElementById('hudSpeed').textContent = this.player.speedTime > 0 ? 'Boost ⚡' : 'Normal';
+    drawHUD() {
+        const hud = document.getElementById('hud');
+        let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${this.currentLevel}/6</span></div>
+                   <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value">${this.level.memberName}</span></div>
+                   <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value">${this.score}</span></div>
+                   <div class="hud-line"><span class="hud-label">Mejor:</span> <span class="hud-value">${this.bestScore}</span></div>
+                   <div class="hud-line hud-lives"><span class="hud-label">Vidas:</span> `;
+        
+        for (let i = 0; i < Math.max(0, this.player.lives); i++) {
+            html += '<span class="life-icon">❤️</span>';
+        }
+        html += `</div>
+                 <div class="hud-line"><span class="hud-label">Escudo:</span> <span class="hud-value">${this.player.shieldTime > 0 ? '🛡️' : '—'}</span></div>
+                 <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value">${this.player.speedTime > 0 ? '⚡' : '—'}</span></div>`;
+        
+        hud.innerHTML = html;
+    }
+
+    drawMessage(text, color) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        ctx.fillStyle = color;
+        ctx.font = 'bold 60px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 10;
+        ctx.fillText(text, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     }
 
     loadBestScore() {
-        const saved = localStorage.getItem('btsGameBestScore');
-        return saved ? parseInt(saved) : 0;
+        return localStorage.getItem('btsGameBest') ? parseInt(localStorage.getItem('btsGameBest')) : 0;
     }
 
     saveBestScore() {
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
-            localStorage.setItem('btsGameBestScore', this.bestScore);
+            localStorage.setItem('btsGameBest', this.bestScore);
         }
     }
 }
@@ -871,9 +1027,7 @@ class Game {
 // ============================================
 window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
-    if (e.key === 'Escape') {
-        location.reload();
-    }
+    if (e.key === 'Escape') location.reload();
 });
 
 window.addEventListener('keyup', (e) => {
@@ -889,7 +1043,6 @@ function gameLoop() {
     setTimeout(gameLoop, 1000 / FPS);
 }
 
-// Iniciar juego cuando la página carga
 window.addEventListener('load', () => {
     game = new Game();
     gameLoop();

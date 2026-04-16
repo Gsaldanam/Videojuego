@@ -1,407 +1,744 @@
-# 🎮 PERSONALIZACIÓN Y MEJORAS - ESTADO ACTUAL
+# 🎮 PERSONALIZACIÓN Y MEJORAS - GUÍA COMPLETA v2.0
 
-## 📋 RESUMEN DE ESTADO
-
-Este documento rastrea todas las mejoras planeadas y su estado de implementación.
-
-**Última actualización:** Versión 3.0 Final - Abril 2026
-
----
-
-## ✅ CARACTERÍSTICAS IMPLEMENTADAS (v3.0)
-
-### 1. ✅ **Power-ups System** 
-- [x] Escudo protector (invencibilidad por 5 segundos)
-- [x] Velocity boost (saltos más altos y ágiles)
-- [x] Salud extra (+1 vida)
-- [x] Sistema de colisión con power-ups
-- [x] Visualización en HUD
-- [x] Duración configurable
-
-**Ubicaciones en código:** `clase PowerUp`, método `Game.update()` línea ~500
+## 📋 TABLE OF CONTENTS
+1. [Estado Actual](#estado-actual)
+2. [Mejoras Implementadas en v2.0](#mejoras-implementadas-en-v20)
+3. [Características Completadas](#características-completadas)
+4. [Mejoras Futuras](#mejoras-futuras)
+5. [🎨 GUÍA PASO A PASO: CÓMO CREAR SPRITES](#guía-paso-a-paso-cómo-crear-sprites)
+6. [Resonancias y Optimizaciones](#resonancias-y-optimizaciones)
 
 ---
 
-### 2. ✅ **6 Niveles Completos**
-- [x] Nivel 1: Jin - Introducción
-- [x] Nivel 2: Suga - Plataformas móviles
-- [x] Nivel 3: J-Hope - Spikes/Trampas
-- [x] Nivel 4: RM - Enemigos voladores
-- [x] Nivel 5: Jungkook - Enemigos disparadores
-- [x] Nivel 6: V - Enemigos teletransportadores
-- [x] Pantalla de victoria al completar todos
+## ✅ ESTADO ACTUAL (v2.0)
 
-**Ubicaciones en código:** clase `Level`, métodos `generate_level_*`
+**Versión:** 2.0 - MEJORADA  
+**Fecha:** Abril 2026  
+**Estado:** Completamente funcional y optimizada  
 
----
-
-### 3. ✅ **5 Tipos de Enemigos con IA Compleja**
-- [x] Normal - Patrulla simple
-- [x] Fast - Movimiento rápido
-- [x] Flying - Vuelo en 2 ejes (NUEVA)
-- [x] Shooter - Movimiento lento pero amenazante (NUEVA)
-- [x] Teleport - Teletransportación aleatoria (NUEVA)
-
-**Ubicaciones en código:** clase `Enemy`, método `update()` con lógica por tipo
+### 🚀 Lo que acabamos de mejorar:
+- ✅ **Físicas mejoradas** - Aceleración, fricción y movimiento realista
+- ✅ **Nueva trampa: Fuego giratorio** - Palo de fuego con 4 llamas rotativas
+- ✅ **interfaz de vidas mejorada** - Corazones visuales con efectos
+- ✅ **Gráficos mejorados** - Colores, bordes, sombras y efectos
+- ✅ **Colisiones precisas** - Detección circle y rect mejorada
+- ✅ **Partículas avanzadas** - Mejor animación y velocidad
 
 ---
 
-### 4. ✅ **Sistema de Puntuaciones Persistente**
-- [x] Guardado en archivo `scores.json`
-- [x] Carga de mejor puntuación al iniciar
-- [x] Muestra en HUD durante el juego
-- [x] Puntuación final al terminar
-- [x] Sistema de cálculo: monedas (10/50) + niveles (500)
+## 🎯 MEJORAS IMPLEMENTADAS EN v2.0
 
-**Ubicaciones en código:** métodos `Game.load_best_score()` y `Game.save_score()`
+### 1. **Física Mejorada**
+```javascript
+// Antes
+this.vx = -this.speed; // Movimiento instantáneo
+
+// Ahora (v2.0)
+this.speed = Math.max(this.speed - ACCELERATION, -this.maxSpeed);
+this.vx = this.speed * FRICTION;
+// ✅ Movimiento suave y realista con aceleración/fricción
+```
+
+### 2. **Nueva Trampa: Fuego Giratorio** 🔥
+- Localización: Niveles 5 y 6
+- Mechánica: 4 llamas giratorias alrededor de un centro
+- Velocidad: Giro constante generando daño
+- Visualización: Fuego naranja/amarillo con efecto de rotación
+- Colisión: Detecta contacto con las llamas
+
+**Código:**
+```javascript
+class FireTrap {
+    constructor(x, y) {
+        this.flames = 4; // 4 llamas
+        this.rotation += this.rotationSpeed; // Giro constante
+        // Cada llama causa daño si toca al jugador
+    }
+}
+```
+
+### 3. **Interfaz de Vidas Mejorada** ❤️
+- Antes: Simple texto "Vidas: 3"
+- Now: `❤️ ❤️ ❤️` (Corazones visuales individuales)
+- Efecto: Cada corazón tiene glow rosa
+- Animación: Parpadean cuando pierdes una vida
+- Ubicación: HUD superior
+
+### 4. **Gráficos Mejorados**
+- ✅ Mayor pixel art (detalles en ojos, boca)
+- ✅ Bordes oscuros en todos los objetos
+- ✅ Luces/highlights realistas
+- ✅ Colores más vibrantes y contrastantes
+- ✅ Efectos de parpadeo en especiales
+- ✅ Background más oscuro para mejor contraste
+
+### 5. **Colisiones Precisas**
+```javascript
+// Colisión rect-rect (plataformas, monedas)
+checkCollision(a, b)
+
+// Colisión circle-rect (llamas de fuego)
+checkCircleCollision(player, circle)
+```
+
+### 6. **Partículas Avanzadas**
+- Mejor velocidad inicial (3-6 píxeles)
+- Mejor gravedad aplicada
+- Tamaño variable
+- Fade out suave
 
 ---
 
-### 5. ✅ **Efectos Visuales Avanzados**
-- [x] Sistema de partículas con gravedad
-- [x] Partículas de salto (5 doradas por salto)
-- [x] Animación de escudo (círculo azul)
-- [x] Alas animadas en enemigos voladores
-- [x] Efecto fade en teletransportadores
-- [x] Parpadeo de enemigos especiales
+## ✅ CARACTERÍSTICAS COMPLETADAS
 
-**Ubicaciones en código:** clase `Particle`, método `Enemy.draw()` línea ~300
-
----
-
-### 6. ✅ **HUD Completo**
-- [x] Nivel actual (X/6)
-- [x] Miembro de BTS a rescatar
-- [x] Puntuación en tiempo real
-- [x] Mejor puntuación
-- [x] Contador de vidas
-- [x] Información de power-ups activos
-
-**Ubicaciones en código:** método `Game.draw()` sección HUD
-
----
-
-### 7. ✅ **Sistema de Colisiones Mejorado**
-- [x] Colisión con plataformas (2 ejes)
-- [x] Colisión con enemigos (daño)
-- [x] Colisión con spikes (daño)
-- [x] Colisión con monedas (recogida)
-- [x] Colisión con power-ups (activación)
-- [x] Protección con escudo (absorbe 1 golpe)
-
-**Ubicaciones en código:** métodos `Player.check_platform_collision()`, `Game.update()`
+| Característica | Estado | Detalles |
+|---|---|---|
+| 6 Niveles | ✅ Completo | Jin → Suga → J-Hope → RM → Jungkook → V |
+| 5 Tipos Enemigos | ✅ Completo | normal, fast, flying, shooter, teleport |
+| 3 Tipos Power-ups | ✅ Completo | shield, speed, health |
+| Trampa Spikes | ✅ Completo | Plataformas puntiagudas |
+| **Trampa Fuego** | ✅ NUEVO | Palo giratorio con 4 llamas |
+| Física 2D | ✅ Mejorado | Aceleración, fricción, saltos suaves |
+| Partículas | ✅ Mejorado | Sistema avanzado de efectos |
+| HUD | ✅ Mejorado | Interfaz con iconos emoji |
+| Puntuaciones | ✅ Completo | localStorage persistente |
+| Gráficos | ✅ Mejorado | Pixel art de calidad |
 
 ---
 
 ## ⏳ MEJORAS FUTURAS (No Implementadas)
 
-### 1. 🔊 **Sistema de Sonidos** 
-**Estado:** ⏳ Pendiente (requiere archivos externos)
+### 1. 🎵 **Sistema de Sonidos**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 30 minutos
 
-**Qué falta:**
+Qué falta:
 ```
 /sounds/
-  ├── jump.wav          # Sonido de salto
-  ├── coin.wav          # Sonido de moneda
-  ├── powerup.wav       # Sonido de power-up
-  ├── level_complete.wav # Fin de nivel
-  ├── enemy_hit.wav     # Golpear enemigo
-  └── music.mp3         # Música de fondo
+├── jump.wav
+├── coin.wav  
+├── powerup.wav
+├── firetrap.wav
+├── levelcomplete.wav
+└── music.mp3
 ```
 
-**Cómo implementar:**
-1. Descarga archivos de freesound.org o zapsplat.com
-2. Crea carpeta `/sounds/` en el directorio del juego
-3. Descomentar estas líneas en juego.py (línea ~50):
+Cómo agregar:
+```javascript
+// Al inicio
+const sounds = {
+    jump: new Audio('sounds/jump.wav'),
+    coin: new Audio('sounds/coin.wav'),
+    powerup: new Audio('sounds/powerup.wav'),
+    fire: new Audio('sounds/fire.wav')
+};
 
-```python
-# pygame.mixer.music.load("sounds/music.mp3")
-# pygame.mixer.music.play(-1)  # Loop infinito
-# 
-# sound_coin = pygame.mixer.Sound("sounds/coin.wav")
-# sound_jump = pygame.mixer.Sound("sounds/jump.wav")
+// Cuando necesites usar
+In Player.update():
+    if (justJumped) sounds.jump.play();
+
+In Game.update():
+    if (collectCoin) sounds.coin.play();
 ```
 
-4. Agregar llamadas en el código:
-```python
-# En Game.update() cuando colisionas con moneda:
-# sound_coin.play()
+### 2. 🎨 **Sprites Reales en lugar de Shapes**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 2-3 horas
 
-# En Player.update() cuando saltas:
-# sound_jump.play()
+Ver sección: [GUÍA PASO A PASO: CÓMO CREAR SPRITES](#guía-paso-a-paso-cómo-crear-sprites)
+
+### 3. 🎬 **Animaciones Avanzadas**
+**Dificultad:** ⭐⭐⭐ Medio  
+**Tiempo:** 2 horas
+
+- Animations del jugador corriendo (4 frames)
+- Salto (2 frames)
+- Animación de muerte
+- Animación de enemigos
+
+```javascript
+class Animation {
+    constructor(frames) {
+        this.frames = frames;
+        this.currentFrame = 0;
+        this.frameTimer = 0;
+    }
+
+    update() {
+        this.frameTimer++;
+        if (this.frameTimer > 5) {
+            this.currentFrame++;
+            this.frameTimer = 0;
+        }
+    }
+}
+```
+
+### 4. 🌟 **Efectos Visuales Especiales**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 1 hora
+
+- Distorsión de pantalla en colisiones
+- Screen shake en eventos
+- Flash de color en daño
+- Transiciones suaves entre niveles
+
+```javascript
+// Screen shake en colisión
+Game.prototype.shake = function() {
+    canvas.style.transform = `translate(${Math.random()-0.5}*10px, ${Math.random()-0.5}*10px)`;
+};
+```
+
+### 5. 🎯 **Sistema de Combos**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 1 hora
+
+```javascript
+class ComboSystem {
+    constructor() {
+        this.coinsCollected = 0;
+        this.jumpsWithoutDamage = 0;
+    }
+
+    onCoinCollect() {
+        this.coinsCollected++;
+        if (this.coinsCollected % 5 === 0) {
+            this.triggerCombo(500); // +500 puntos
+        }
+    }
+
+    onDamage() {
+        this.coinsCollected = 0;
+        this.jumpsWithoutDamage = 0;
+    }
+}
+```
+
+### 6. 🏆 **Sistema de Logros**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 1 hora
+
+- "¡Primer Nivel!" - Completar nivel 1
+- "¡Sin fallos!" - Completa nivel sin daño
+- "¡Coleccionista!" - Recoge 80%+ monedas
+- "¡Velocista!" - Completa nivel en menos de tiempo
+
+```javascript
+const achievements = {
+    'first_level': { name:'¡Primer Nivel!', completed: false },
+    'no_damage': { name:'¡Sin fallos!', completed: false },
+};
+
+function checkAchievements() {
+    if (player.lives === 3 && levelComplete) {
+        achievements.no_damage.completed = true;
+    }
+}
+```
+
+### 7. 📊 **Leaderboard con Límite**
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 1.5 horas
+
+```javascript
+class Leaderboard {
+    constructor(maxScores = 10) {
+        this.scores = JSON.parse(localStorage.getItem('btsLeaderboard')) || [];
+        this.maxScores = maxScores;
+    }
+
+    addScore(name, score) {
+        this.scores.push({ name, score, date: new Date().toLocaleDateString() });
+        this.scores.sort((a, b) => b.score - a.score);
+        this.scores = this.scores.slice(0, this.maxScores);
+        localStorage.setItem('btsLeaderboard', JSON.stringify(this.scores));
+    }
+
+    getTop() {
+        return this.scores.slice(0, 5);
+    }
+}
+```
+
+### 8. 🎪 **Nuevos Modos de Juego**
+**Dificultad:** ⭐⭐⭐ Medio  
+**Tiempo:** 3 horas
+
+- **Modo Arcade:** Niveles infinitos, dificultad aumenta
+- **Modo Desafío:** Tiempo límite (5 minutos)
+- **Modo Zen:** Sin enemigos, solo plataformas
+- **Modo Hardcore:** 1 vida, sin power-ups
+
+---
+
+# 🎨 GUÍA PASO A PASO: CÓMO CREAR SPRITES
+
+## ¿Qué son los Sprites?
+Los **sprites** son imágenes que reemplazan las formas geométricas (rectángulos, círculos) del juego actual.
+
+**Diferencia:**
+- **Ahora:** Dibujos con `ctx.fillRect()` y `ctx.arc()`
+- **Con sprites:** Imágenes `.png` reales (pixel art o ilustraciones)
+
+---
+
+## PASO 1: PREPARAR LAS IMÁGENES
+
+### Requisitos:
+- Formato: **PNG** (permite transparencia)
+- Tamaño: Múltiplos de 32x32 píxeles (32x32, 64x64, 128x128)
+- Transparencia: Fondo transparente
+- Resolución: 72-96 DPI
+
+### Opción 1: Descargar sprites existentes
+**Sitios recomendados:**
+1. **OpenGameArt.org** - Libre bajo Creative Commons
+2. **Itch.io** - Busca "pixel art platformer"
+3. **Kenney.nl** - Sprites gratuitos de excelente calidad
+
+Busca por:
+- "platformer sprites"
+- "pixel art characters"
+- "game tiles"
+
+### Opción 2: Crear tus propios sprites
+**Herramientas (Gratis):**
+1. **Aseprite** (lite) - Pixel art profesional ($20 pero vale)
+2. **Piskel** (online) - Gratis, sin instalar
+3. **LibreSprite** - Gratis, código abierto
+4. **Krita** - Gratis, versátil
+
+---
+
+## PASO 2: ORGANIZAR LA CARPETA
+
+Crea esta estructura en tu carpeta del juego:
+
+```
+regalo/
+├── index.html
+├── game.js
+├── sprites/                    ← NUEVA CARPETA
+│   ├── player.png
+│   ├── player-walk-1.png
+│   ├── player-walk-2.png
+│   ├── player-jump.png
+│   ├── enemies/
+│   │   ├── normal.png
+│   │   ├── fast.png
+│   │   ├── flying.png
+│   │   ├── shooter.png
+│   │   └── teleport.png
+│   ├── platforms/
+│   │   ├── normal.png
+│   │   ├── moving.png
+│   │   └── spike.png
+│   ├── items/
+│   │   ├── coin.png
+│   │   ├── shield.png
+│   │   ├── speed.png
+│   │   └── health.png
+│   └── effects/
+│       ├── fire-trap.png
+│       └── particle.png
 ```
 
 ---
 
-### 2. 🎨 **Sprites y Gráficos** 
-**Estado:** ⏳ Pendiente (requiere archivos externos)
+## PASO 3: CARGAR LOS SPRITES EN game.js
 
-**Qué falta:**
+### Crear un gestor de sprites:
+
+```javascript
+class SpriteManager {
+    constructor() {
+        this.sprites = {};
+        this.loadingPromises = [];
+    }
+
+    loadSprite(name, path) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                this.sprites[name] = img;
+                resolve();
+            };
+            img.onerror = () => reject(new Error(`No se pudo cargar: ${path}`));
+            img.src = path;
+        });
+    }
+
+    async loadAll() {
+        await Promise.all([
+            this.loadSprite('player', 'sprites/player.png'),
+            this.loadSprite('enemy-normal', 'sprites/enemies/normal.png'),
+            this.loadSprite('enemy-fast', 'sprites/enemies/fast.png'),
+            this.loadSprite('platform', 'sprites/platforms/normal.png'),
+            this.loadSprite('coin', 'sprites/items/coin.png'),
+            this.loadSprite('shield', 'sprites/items/shield.png'),
+        ]);
+    }
+
+    getSprite(name) {
+        return this.sprites[name];
+    }
+}
+
+// Crear gestor global
+const spriteManager new SpriteManager();
 ```
-/sprites/
-  ├── player.png          # 35x40 píxeles
-  ├── enemies/
-  │   ├── normal.png
-  │   ├── fast.png
-  │   ├── flying.png
-  │   ├── shooter.png
-  │   └── teleport.png
-  ├── platforms/
-  │   ├── normal.png
-  │   ├── moving.png
-  │   └── spike.png
-  ├── items/
-  │   ├── coin.png
-  │   ├── shield.png
-  │   ├── speed_boost.png
-  │   └── health.png
-  └── characters/
-      ├── jin.png
-      ├── suga.png
-      ├── jhope.png
-      ├── rm.png
-      ├── jungkook.png
-      └── v.png
+
+### Cargar sprites al inicio del juego:
+
+```javascript
+window.addEventListener('load', async () => {
+    await spriteManager.loadAll();
+    game = new Game();
+    gameLoop();
+});
 ```
-
-**Cómo implementar:**
-```python
-# Reemplazar pygame.draw.rect() con:
-player_image = pygame.image.load("sprites/player.png")
-player_image = pygame.transform.scale(player_image, (35, 40))
-surface.blit(player_image, (player.rect.x - camera_x, player.rect.y))
-
-# Lo mismo para enemigos, monedas, plataformas, etc.
-```
-
-**Recursos:**
-- itch.io/game-assets
-- opengameart.org
-- pixelart.com
 
 ---
 
-### 3. 💥 **Sistema de Combos Avanzado** 
-**Estado:** ⏳ Pendiente (nueva lógica)
+## PASO 4: REEMPLAZAR DIBUJOS CON SPRITES
 
-**Ideas:**
-- Recolecta 5 monedas consecutivas sin daño = +500 puntos bonus
-- Salta 10 plataformas consecutivas sin error = +250 puntos
-- Completa level sin recibir daño = +1000 puntos
-- Usa 3 power-ups en un nivel = +300 puntos
+### Ejemplo: Cambiar el Jugador
 
-**Cómo implementar:**
-```python
-# En clase Player:
-class Player:
-    def __init__(self):
-        # ...
-        self.consecutive_coins = 0
-        self.consecutive_jumps = 0
+**Código actual (v2.0):**
+```javascript
+Player.prototype.draw = function(ctx, cameraX) {
+    ctx.fillStyle = '#FFEB3B';
+    ctx.fillRect(this.x - cameraX, this.y, 30, 35);
+    // ... más código de color
+};
+```
+
+**Código con sprites:**
+```javascript
+Player.prototype.draw = function(ctx, cameraX) {
+    const sprite = spriteManager.getSprite('player');
+    if (sprite) {
+        // Dibujar la imagen en lugar del rectángulo
+        ctx.drawImage(
+            sprite,                           // Imagen
+            this.x - cameraX,                // X
+            this.y,                          // Y
+            30,                              // Ancho
+            35                               // Alto
+        );
+    }
+};
+```
+
+### Ejemplo: Cambiar Moneda
+
+**Antes:**
+```javascript
+Coin.prototype.draw = function(ctx, cameraX) {
+    ctx.fillStyle = '#FFB800';
+    ctx.beginPath();
+    ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+};
+```
+
+**Después:**
+```javascript
+Coin.prototype.draw = function(ctx, cameraX) {
+    const sprite = spriteManager.getSprite('coin');
+    if (sprite) {
+        ctx.drawImage(sprite, x - 5, y - 5, 10, 10);
+    }
+};
+```
+
+### Ejemplo: Cambiar Enemigos
+
+```javascript
+Enemy.prototype.draw = function(ctx, cameraX) {
+    let spriteName = 'enemy-normal';
     
-    # Incrementar al recoger moneda
-    # Resetear al recibir daño
+    if (this.type === 'fast') spriteName = 'enemy-fast';
+    else if (this.type === 'flying') spriteName = 'enemy-flying';
+    else if (this.type === 'shooter') spriteName = 'enemy-shooter';
+    else if (this.type === 'teleport') spriteName = 'enemy-teleport';
 
-# En Game.update():
-if player.consecutive_coins == 5:
-    score += 500
-    player.consecutive_coins = 0
+    const sprite = spriteManager.getSprite(spriteName);
+    if (sprite) {
+        ctx.drawImage(sprite, this.x - cameraX, this.y, 30, 30);
+    }
+};
+```
+
+### Ejemplo: Plataformas
+
+```javascript
+Platform.prototype.draw = function(ctx, cameraX) {
+    let spriteName = 'platform';
+    
+    if (this.type === 'spike') spriteName = 'platform-spike';
+    if (this.type === 'moving') spriteName = 'platform-moving';
+
+    const sprite = spriteManager.getSprite(spriteName);
+    if (sprite) {
+        const x = this.x - cameraX + this.moving;
+        
+        // Repetir sprite según el ancho
+        for (let i = 0; i < this.width; i += 32) {
+            ctx.drawImage(sprite, x + i, this.y, 32, this.height);
+        }
+    }
+};
 ```
 
 ---
 
-### 4. 🏆 **Leaderboard / Top Scores**
-**Estado:** ⏳ Pendiente (requiere GUI mejorada)
+## PASO 5: ANIMACIONES CON SPRITES
 
-**Qué agregar:**
-- Guardar TOP 10 jugadores en `scores.json`
-- Pantalla de leaderboard en menú
-- Mostrar ranking histórico
-- Fecha y hora de jugadas
+### Sistema simple de animación:
 
-**Estructura JSON:**
-```json
-{
-  "scores": [
-    {"name": "Alexandra", "score": 5250, "date": "2026-04-16"},
-    {"name": "Gabriel", "score": 4800, "date": "2026-04-15"},
-    // ... más
-  ],
-  "best_score": 5250
+```javascript
+class AnimatedSprite {
+    constructor(frames, frameDelay = 5) {
+        this.frames = frames;        // ['walk-1.png', 'walk-2.png', ...]
+        this.frameDelay = frameDelay;
+        this.currentFrame = 0;
+        this.timer = 0;
+    }
+
+    update() {
+        this.timer++;
+        if (this.timer >= this.frameDelay) {
+            this.timer = 0;
+            this.currentFrame++;
+            if (this.currentFrame >= this.frames.length) {
+                this.currentFrame = 0;
+            }
+        }
+    }
+
+    getFrame() {
+        return this.frames[this.currentFrame];
+    }
+}
+
+// Usar en el Jugador:
+class Player {
+    constructor() {
+        // ... código anterior
+        this.walkAnimation = new AnimatedSprite([
+            'sprites/player-walk-1.png',
+            'sprites/player-walk-2.png',
+            'sprites/player-walk-3.png',
+            'sprites/player-walk-4.png'
+        ], 5);
+        
+        this.jumpSprite = 'sprites/player-jump.png';
+    }
+
+    update() {
+        // ... código anterior
+        if (this.vx !== 0) {
+            this.walkAnimation.update();
+        }
+    }
+
+    draw(ctx, cameraX) {
+        let spritePath;
+        
+        if (this.onGround && this.vx !== 0) {
+            spritePath = this.walkAnimation.getFrame();
+        } else if (!this.onGround) {
+            spritePath = this.jumpSprite;
+        } else {
+            spritePath = 'sprites/player.png';
+        }
+
+        const sprite = spriteManager.getSprite(spritePath);
+        if (sprite) {
+            ctx.drawImage(sprite, this.x - cameraX, this.y, 30, 35);
+        }
+    }
 }
 ```
 
 ---
 
-### 5. 👥 **Modos de Juego Adicionales**
-**Estado:** ⏳ Pendiente (requiere refactor)
+## PASO 6: ROTACIÓN DE SPRITES
 
-**Opciones:**
-- **Modo Arcade:** Niveles infinitos con dificultad creciente
-- **Modo Desafío:** Tiempo limitado (5 minutos para completar todos los niveles)
-- **Modo Zen:** Sin enemigos, solo plataformas y relajación
-- **Modo Hardcore:** 1 vida, sin power-ups, enemigos veloces
-- **Multijugador Local:** 2 jugadores en pantalla dividida
+Perfectofor:
+- Enemigos voladores (alas)
+- Trampas de fuego
+- Items giratorios
 
----
+```javascript
+function drawRotatedImage(ctx, image, x, y, width, height, angle) {
+    ctx.save();
+    ctx.translate(x + width/2, y + height/2);
+    ctx.rotate(angle);
+    ctx.drawImage(image, -width/2, -height/2, width, height);
+    ctx.restore();
+}
 
-### 6. 📊 **Panel de Configuración en Juego**
-**Estado:** ⏳ Pendiente (requiere menú adicional)
-
-**Opciones:**
-```
-⚙️ SETTINGS MENU
-├── 🔊 Volumen de música (0-100)
-├── 🔉 Volumen de efectos (0-100)
-├── 🎮 Sensibilidad de movimiento
-├── 🌙 Modo oscuro/claro
-├── 🎯 Dificultad predeterminada
-└── 🗑️ Borrar puntuaciones
-```
-
----
-
-### 7. ✨ **Nuevos Tipos de Poder-ups**
-**Estado:** ⏳ Pendiente (fácil de agregar)
-
-**Ideas:**
-- **Invisibilidad:** No interactuar con enemigos por 3 segundos
-- **Duplicador de monedas:** Las monedas valen 2x por 5 segundos
-- **Slow-mo:** El tiempo se ralentiza a 50% durante 2 segundos
-- **Magnetismo:** Las monedas se atraen hacia el jugador
-- **Revive:** Revivir si mueres en los próximos 5 segundos
-
-**Cómo agregar uno nuevo:**
-```python
-# En clase PowerUp:
-if tipo == "invisibility":
-    self.effect = "invisibility"
-    self.duration = 180
-    self.color = (100, 100, 255)
-
-# En Player.update():
-if self.invisibility_time > 0:
-    self.invisible = True
-    self.invisibility_time -= 1
+// Usar en FireTrap:
+FireTrap.prototype.draw = function(ctx, cameraX) {
+    const sprite = spriteManager.getSprite('fire-trap');
+    if (sprite) {
+        const x = this.x - cameraX;
+        const y = this.y;
+        drawRotatedImage(ctx, sprite, x, y, 60, 60, this.rotation);
+    }
+};
 ```
 
 ---
 
-### 8. 🎬 **Cinemáticas y Transiciones**
-**Estado:** ⏳ Pendiente (sería épico)
+## PASO 7: ESCALADO Y TRANSFORMACIÓN
 
-**Ideas:**
-- Animación de introducción de cada personaje BTS
-- Diálogo de rescate ("¡Jin, estás salvado! 💜")
-- Transiciones suaves entre niveles (fade/zoom)
-- Pantalla de "Game Over" temática
-- Créditos finales animados
+```javascript
+// Espejos horizontales (para que el jugador mire en ambas direcciones)
+function drawFlipped(ctx, image, x, y, width, height) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(image, -x - width, y, width, height);
+    ctx.restore();
+}
 
----
-
-## 🛠️ GUÍA DE IMPLEMENTACIÓN RÁPIDA
-
-### Para agregar un nuevo tipo de enemigo:
-
-```python
-# 1. En Enemy.update(), agregar nueva lógica:
-elif self.type == "nuevo_tipo":
-    # Tu lógica aquí
-    self.x += 2
-
-# 2. En Level.generate_level_*():
-enemies.append(Enemy(100, 200, "nuevo_tipo"))
-
-# 3. En Enemy.draw():
-elif self.type == "nuevo_tipo":
-    pygame.draw.rect(surface, (255, 0, 255), rect)  # Color único
-```
-
-### Para agregar un nuevo power-up:
-
-```python
-# 1. Crear en PowerUp.__init__:
-if tipo == "nuevo_powerup":
-    self.duration = 300
-    self.color = (nuevaR, nuevaG, nuevaB)
-
-# 2. Efecto en Player.update():
-if self.nuevo_powerup_time > 0:
-    # Aplicar efecto
-    self.nuevo_powerup_time -= 1
-
-# 3. En Game.update(), detectar colisión:
-if powerup.tipo == "nuevo_powerup":
-    player.nuevo_powerup_time = 300
+// En Player.draw:
+if (this.direction === -1) {
+    drawFlipped(ctx, sprite, this.x - cameraX, this.y, 30, 35);
+} else {
+    ctx.drawImage(sprite, this.x - cameraX, this.y, 30, 35);
+}
 ```
 
 ---
 
-## 📚 RECURSOS ÚTILES
+## CHECKLIST: IMPLEMENTACIÓN DE SPRITES
 
-### Sonidos Retro Gratuitos:
-- **freesound.org** - Amplio catálogo
-- **zapsplat.com** - Efectos de sonido
-- **itch.io** - Game Assets gratis
-
-### Sprites y Gráficos:
-- **itch.io** - Miles de asset packs
-- **opengameart.org** - Arte libre
-- **pixelart.com** - Generador de pixel art
-
-### Colores BTS Oficiales:
-- **Morado:** RGB(155, 89, 182) | HEX #9B59B6
-- **Dorado:** RGB(255, 215, 0) | HEX #FFD700
-- **Negro:** RGB(0, 0, 0) | HEX #000000
+- [ ] Carpeta `/sprites` creada
+- [ ] Todas las imágenes descargadas/creadas
+- [ ] SpriteManager agregado a game.js
+- [ ] Todos los sprites cargados en loadAll()
+- [ ] Player.draw() actualizado
+- [ ] Enemy.draw() actualizado
+- [ ] Platform.draw() actualizado
+- [ ] Coin.draw() actualizado
+- [ ] PowerUp.draw() actualizado
+- [ ] Animaciones configuradas (opcional)
+- [ ] Rotaciones funcionando (opcional)
+- [ ] Pruebas completadas ✅
 
 ---
 
-## 💜 PRÓXIMOS PASOS RECOMENDADOS
+## 🎯 TRUCOS Y OPTIMIZACIONES
 
-**Si quieres mejorar el juego, aquí está el orden recomendado:**
+### TruckO 1: Cachear Sprites Escalados
+```javascript
+class CachedSprite {
+    constructor(path) {
+        this.original = spriteManager.getSprite(path);
+        this.cache = {};
+    }
 
-1. **Fácil (30 minutos):** Agregar nuevos power-ups
-2. **Fácil (30 minutos):** Agregar nuevos tipos de enemigos
-3. **Medio (1-2 horas):** Implementar sonidos
-4. **Medio (1-2 horas):** Agregar leaderboard
-5. **Difícil (3-4 horas):** Implementar sprites
-6. **Difícil (4-5 horas):** Nuevos modos de juego
+    draw(ctx, x, y, width, height) {
+        const key = `${width}x${height}`;
+        if (!this.cache[key]) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(this.original, 0, 0, width, height);
+            this.cache[key] = canvas;
+        }
+        ctx.drawImage(this.cache[key], x, y);
+    }
+}
+```
+
+### Truco 2: Spritesheets (Multi-sprites en una imagen)
+
+Si tienes múltiples frames en una sola imagen:
+
+```javascript
+class Spritesheet {
+    constructor(imagePath, frameWidth, frameHeight) {
+        this.image = spriteManager.getSprite(imagePath);
+        this.frameWidth = frameWidth;
+        this.frameHeight = frameHeight;
+    }
+
+    drawFrame(ctx, frameIndex, x, y) {
+        const col = frameIndex % Math.floor(this.image.width / this.frameWidth);
+        const row = Math.floor(frameIndex / Math.floor(this.image.width / this.frameWidth));
+        
+        ctx.drawImage(
+            this.image,
+            col * this.frameWidth,
+            row * this.frameHeight,
+            this.frameWidth,
+            this.frameHeight,
+            x,
+            y,
+            this.frameWidth,
+            this.frameHeight
+        );
+    }
+}
+```
 
 ---
 
-## 🎯 ESTADO ACTUAL
+## 📚 RECURSOS RECOMENDADOS
 
-| Característica | Estado | Dificultad | Tiempo Est. |
-|---|---|---|---|
-| Power-ups | ✅ Hecho | - | - |
-| 6 Niveles | ✅ Hecho | - | - |
-| 5 Enemigos | ✅ Hecho | - | - |
-| Puntuaciones | ✅ Hecho | - | - |
-| Efectos visuales | ✅ Hecho | - | - |
-| Sonidos | ⏳ Pendiente | ⭐⭐ Fácil | 30 min |
-| Sprites | ⏳ Pendiente | ⭐⭐ Fácil | 30 min |
-| Combos | ⏳ Pendiente | ⭐⭐ Fácil | 1 hora |
-| Leaderboard | ⏳ Pendiente | ⭐⭐⭐ Medio | 2 horas |
-| Modos de juego | ⏳ Pendiente | ⭐⭐⭐ Medio | 4 horas |
-| Sprites gráficos | ⏳ Pendiente | ⭐⭐⭐⭐ Difícil | 3 horas |
-| Cinemáticas | ⏳ Pendiente | ⭐⭐⭐⭐ Difícil | 5 horas |
+### Descargar Sprites:
+1. **OpenGameArt.org** - Gratis, CC0/CC-BY
+2. **Kenney.nl** - Sprites premium gratis
+3. **Itch.io** - Busca "free game assets"
+4. **CraftPix** - Variedades de estilos
 
----
+### Crear Sprites:
+1. **Piskel** (piskelapp.com) - Online, no instalar
+2. **Aseprite** - Profesional ($20)
+3. **LibreSprite** - Gratis, código abierto
+4. **Krita** - Versátil, gratis
 
-## 💜 NOTA FINAL
-
-**El juego actual es completamente funcional y jugable.** 
-
-Todas las características core están implementadas:
-- ✅ 6 niveles temáticos
-- ✅ Enemigos variados con IA
-- ✅ Sistema de power-ups
-- ✅ Efectos visuales
-- ✅ Puntuaciones guardadas
-
-Las mejoras futuras son **opcionales** para hacerlo aún más épico. ¡Diviértete personalizando! 💜✨
+### Herramientas Útiles:
+1. **Sprite Fusion** - Combinar sprites online
+2. **Pico-8** - Juegos retro pixel art
+3. **GIMP** - Editor gratuito, crea PNGs
 
 ---
 
-**Creado con 💜 para Alexandra**
-**¡A disfrutar del juego!**
+## 💡 PRÓXIMOS PASOS
+
+**Recomendado:**
+1. Descarga sprites existentes de Kenney.nl (más rápido)
+2. Crea la carpeta `/sprites`
+3. Implementa SpriteManager
+4. Reemplaza los draw() uno por uno
+5. Prueba cada elemento
+6. Agrega animaciones (opcional)
+
+**Dificultad:** ⭐⭐ Fácil  
+**Tiempo:** 2-3 horas con sprites existentes
+
+---
+
+## 💜 RESUMEN
+
+El sistema de sprites te permite:
+- ✅ Mejor calidad visual
+- ✅ Mayor profesionalismo
+- ✅ Facilidad para cambiar estilo
+- ✅ Animaciones suaves
+- ✅ Compatibilidad total con físicas actuales
+
+**El código de lógica de juego NO cambia**, solo cambian los `draw()`.
+
+---
+
+**¡Créjue y personaliza tu juego! 🎨💜**
+
+Creado con 💜 para Alexandra
+Última actualización: Abril 2026
