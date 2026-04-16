@@ -26,6 +26,9 @@ class TiledSpriteManager {
         this.tilesets = {};
         this.backgroundLayers = [];
         this.memberPortraits = {};
+        this.memberPortraitSources = {};
+        this.basicPointSprite = null;
+        this.specialPointSprite = null;
         this.defaultTilesets = {
             tiles: {
                 tsxPath: 'tileset-tiles.tsx',
@@ -57,20 +60,89 @@ class TiledSpriteManager {
         await Promise.all([
             ...Object.entries(this.defaultTilesets).map(([key, config]) => this.loadTileset(key, config)),
             this.loadBackgroundLayers(),
-            this.loadMemberPortraits()
+            this.loadMemberPortraits(),
+            this.loadBasicPointSprite(),
+            this.loadSpecialPointSprite()
         ]);
+    }
+
+    async loadBasicPointSprite() {
+        const image = await this.loadImageWithFallbacks([
+            'assets/items/mike.png',
+            './assets/items/mike.png'
+        ]);
+
+        if (image) {
+            this.basicPointSprite = image;
+            console.log('[Sprites] Punto básico cargado desde assets/items/mike.png');
+        } else {
+            this.basicPointSprite = null;
+            console.warn('[Sprites] No se pudo cargar assets/items/mike.png para puntos básicos');
+        }
+    }
+
+    drawBasicPoint(ctx, centerX, centerY, radius) {
+        if (!this.basicPointSprite) return false;
+
+        const size = Math.max(28, radius * 5.2);
+        const dx = Math.round(centerX - size / 2);
+        const dy = Math.round(centerY - size / 2);
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(this.basicPointSprite, dx, dy, size, size);
+        ctx.restore();
+        return true;
+    }
+
+    async loadSpecialPointSprite() {
+        const image = await this.loadImageWithFallbacks([
+            'assets/items/morado.png',
+            './assets/items/morado.png'
+        ]);
+
+        if (image) {
+            this.specialPointSprite = image;
+            console.log('[Sprites] Punto grande cargado desde assets/items/morado.png');
+        } else {
+            this.specialPointSprite = null;
+            console.warn('[Sprites] No se pudo cargar assets/items/morado.png para puntos grandes');
+        }
+    }
+
+    drawSpecialPoint(ctx, centerX, centerY, radius) {
+        if (!this.specialPointSprite) return false;
+
+        const size = Math.max(34, radius * 5.9);
+        const dx = Math.round(centerX - size / 2);
+        const dy = Math.round(centerY - size / 2);
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(this.specialPointSprite, dx, dy, size, size);
+        ctx.restore();
+        return true;
     }
 
     async loadMemberPortraits() {
         const members = {
             jin: [
-                'assets/members/jimin.png'
+                'assets/members/jin.png'
+            ],
+            suga: [
+                'assets/members/suga.png'
+            ],
+            'j-hope': [
+                'assets/members/jhope.png'
             ],
             jimin: [
-                'assets/members/jin.png'
+                'assets/members/jimin.png'
             ],
             jungkook: [
                 'assets/members/jungkook.png'
+            ],
+            rm: [
+                'assets/members/rm.png'
             ],
             v: [
                 'assets/members/v.png'
@@ -85,7 +157,10 @@ class TiledSpriteManager {
         );
 
         for (const [name, image] of entries) {
-            if (image) this.memberPortraits[name] = image;
+            if (image) {
+                this.memberPortraits[name] = image;
+                this.memberPortraitSources[name] = image.currentSrc || image.src || 'unknown';
+            }
         }
 
         console.log(`[Members] Retratos cargados: ${Object.keys(this.memberPortraits).join(', ') || 'ninguno'}`);
@@ -95,13 +170,34 @@ class TiledSpriteManager {
         const normalized = (memberName || '').toLowerCase();
         const aliases = {
             jin: 'jin',
+            suga: 'suga',
+            'j-hope': 'j-hope',
+            jhope: 'j-hope',
             jimin: 'jimin',
             jungkook: 'jungkook',
+            rm: 'rm',
             v: 'v'
         };
 
         const key = aliases[normalized] || normalized;
         return this.memberPortraits[key] || null;
+    }
+
+    getMemberPortraitSource(memberName) {
+        const normalized = (memberName || '').toLowerCase();
+        const aliases = {
+            jin: 'jin',
+            suga: 'suga',
+            'j-hope': 'j-hope',
+            jhope: 'j-hope',
+            jimin: 'jimin',
+            jungkook: 'jungkook',
+            rm: 'rm',
+            v: 'v'
+        };
+
+        const key = aliases[normalized] || normalized;
+        return this.memberPortraitSources[key] || null;
     }
 
     drawMemberPortrait(ctx, memberName, dx, dy, dw, dh) {
@@ -185,6 +281,7 @@ class TiledSpriteManager {
             const width = Math.round((layer.cropWidthRatio ?? 1) * 100);
             console.log(`[Background] Capa ${index + 1}: zona X ${left}% -> ${left + width}%`);
         });
+        console.log('[Members] Jin -> assets/members/jin.png | Jimin -> assets/members/jimin.png');
     }
 
     async loadTileset(key, config) {
@@ -506,6 +603,9 @@ class Coin {
         const y = this.y + Math.sin(this.bobbing) * 3;
 
         if (this.special) {
+            const specialPointSpriteDrawn = spriteManager?.drawSpecialPoint(ctx, x, y, this.radius);
+            if (specialPointSpriteDrawn) return;
+
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.arc(x, y, this.radius, 0, Math.PI * 2);
@@ -521,6 +621,9 @@ class Coin {
             ctx.arc(x - 2, y - 2, this.radius * 0.4, 0, Math.PI * 2);
             ctx.fill();
         } else {
+            const basicPointSpriteDrawn = spriteManager?.drawBasicPoint(ctx, x, y, this.radius);
+            if (basicPointSpriteDrawn) return;
+
             ctx.fillStyle = '#FFB800';
             ctx.beginPath();
             ctx.arc(x, y, this.radius, 0, Math.PI * 2);
@@ -737,6 +840,48 @@ class FireTrap {
             positions.push({ x: fx, y: fy, radius: this.fireSize });
         }
         return positions;
+    }
+}
+
+class CannonShot {
+    constructor(y, speed = 9, size = 22) {
+        this.x = SCREEN_WIDTH + 200;
+        this.y = y;
+        this.width = size;
+        this.height = size;
+        this.speed = speed;
+        this.color = '#1b1b1b';
+    }
+
+    reset(cameraX) {
+        this.x = cameraX + SCREEN_WIDTH + 120 + Math.random() * 500;
+    }
+
+    update(cameraX) {
+        this.x -= this.speed * 0.8;
+        if (this.x + this.width < cameraX - 60) {
+            this.reset(cameraX);
+        }
+    }
+
+    draw(ctx, cameraX) {
+        const x = this.x - cameraX;
+
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#5b5b5b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + this.width / 2, this.y + this.height / 2, this.width / 2 - 1, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff3b30';
+        ctx.beginPath();
+        ctx.arc(x + this.width / 2 - 3, this.y + this.height / 2 - 3, 4, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
@@ -1111,8 +1256,11 @@ class Player {
 // CLASE: Level (Niveles mejorados)
 // ============================================
 class Level {
-    constructor(levelNumber) {
+    constructor(levelNumber, options = {}) {
         this.levelNumber = levelNumber;
+        this.mode = options.mode || 'normal';
+        this.isInfinite = this.mode === 'infinito';
+        this.difficultyTier = options.difficultyTier || levelNumber;
         this.platforms = [];
         this.staticPlatforms = [];
         this.dynamicPlatforms = [];
@@ -1122,27 +1270,125 @@ class Level {
         this.coins = [];
         this.powerups = [];
         this.fireTraps = [];
+        this.cannonShots = [];
         this.goalX = 0;
         this.goalY = 0;
         this.goalWidth = 34;
         this.goalHeight = 42;
-        this.members = ['Jin', 'Suga', 'J-Hope', 'RM', 'Jungkook', 'V'];
-        this.memberName = this.members[levelNumber - 1];
+        this.members = this.mode === 'normal'
+            ? ['Jin', 'Suga', 'J-Hope', 'Jungkook', 'V', 'RM', 'Jimin']
+            : ['Jin', 'Suga', 'J-Hope', 'Jimin', 'Jungkook', 'V', 'RM'];
+        this.memberName = this.members[(levelNumber - 1) % this.members.length];
 
         this.generateLevel();
         this.buildPlatformRenderCache();
     }
 
     generateLevel() {
+        if (this.isInfinite) {
+            this.generateLevelInfinite(this.difficultyTier);
+            return;
+        }
+
         const methods = [
             () => this.generateLevelJin(),
             () => this.generateLevelSuga(),
             () => this.generateLevelJhope(),
-            () => this.generateLevelRM(),
+            () => this.generateLevelJimin(),
             () => this.generateLevelJungkook(),
-            () => this.generateLevelV()
+            () => this.generateLevelV(),
+            () => this.generateLevelRM()
         ];
-        methods[this.levelNumber - 1]();
+        const methodIndex = Math.max(0, Math.min(methods.length - 1, this.levelNumber - 1));
+        methods[methodIndex]();
+    }
+
+    createSeededRandom(seed) {
+        let state = seed >>> 0;
+        return () => {
+            state = (state * 1664525 + 1013904223) >>> 0;
+            return state / 4294967296;
+        };
+    }
+
+    randomRange(random, min, max) {
+        return min + random() * (max - min);
+    }
+
+    generateLevelInfinite(tier) {
+        const random = this.createSeededRandom(7919 + tier * 104729);
+        const hazardFactor = Math.min(1, tier / 22);
+        const movingChance = Math.min(0.15 + hazardFactor * 0.45, 0.65);
+        const enemyCount = 4 + Math.floor(tier * 0.7);
+        const trapCount = Math.min(2 + Math.floor(tier * 0.35), 10);
+        const shotCount = tier >= 4 ? Math.min(1 + Math.floor((tier - 2) / 4), 6) : 0;
+        const levelLength = Math.min(3600 + tier * 180, 9200);
+
+        this.platforms.push(new Platform(0, 550, levelLength, 50, 'normal'));
+
+        let platformX = 170;
+        let platformY = 470;
+        const elevatedPlatforms = 12 + Math.floor(tier * 0.9);
+
+        for (let i = 0; i < elevatedPlatforms; i++) {
+            const jumpStep = Math.floor(this.randomRange(random, 170, 280));
+            platformX += jumpStep;
+            if (platformX > levelLength - 520) break;
+
+            const deltaY = Math.floor(this.randomRange(random, -62, 62));
+            platformY = Math.max(250, Math.min(500, platformY + deltaY));
+
+            const width = Math.floor(this.randomRange(random, 105, 170));
+            const type = random() < movingChance ? 'moving' : 'normal';
+            this.platforms.push(new Platform(platformX, platformY, width, 20, type));
+
+            if (random() < 0.92) {
+                this.coins.push(new Coin(platformX + width / 2, platformY - 28, random() < 0.28));
+            }
+        }
+
+        const finalPlatformX = levelLength - 340;
+        const finalPlatformY = Math.max(220, Math.min(460, platformY - 15));
+        this.platforms.push(new Platform(finalPlatformX, finalPlatformY, 210, 20, 'normal'));
+
+        for (let i = 0; i < enemyCount; i++) {
+            const ex = this.randomRange(random, 350, levelLength - 420);
+            const ey = this.randomRange(random, 260, 470);
+            let type = 'normal';
+            const roll = random();
+            if (tier > 5 && roll > 0.74) type = 'fast';
+            if (tier > 9 && roll > 0.86) type = 'flying';
+            if (tier > 13 && roll > 0.93) type = 'teleport';
+            this.enemies.push(new Enemy(ex, ey, type));
+        }
+
+        for (let i = 0; i < trapCount; i++) {
+            const tx = this.randomRange(random, 420, levelLength - 520);
+            const baseSpacing = this.randomRange(random, 18, 22);
+            this.fireTraps.push(new FireTrap(tx, 500, {
+                segmentCount: 4 + Math.floor(this.randomRange(random, 0, 4 + hazardFactor * 2)),
+                segmentSpacing: baseSpacing,
+                fireSize: 14 + Math.floor(this.randomRange(random, 0, 3)),
+                arms: random() < Math.min(0.2 + hazardFactor * 0.35, 0.6) ? 2 : 1,
+                rotationSpeed: this.randomRange(random, 0.045, 0.08) * (random() < 0.5 ? 1 : -1)
+            }));
+        }
+
+        for (let i = 0; i < shotCount; i++) {
+            const y = this.randomRange(random, 320, 500);
+            const speed = this.randomRange(random, 8.6, 10.4 + hazardFactor * 2.4);
+            const size = this.randomRange(random, 20, 26);
+            this.cannonShots.push(new CannonShot(y, speed, size));
+        }
+
+        this.powerups.push(new PowerUp(this.randomRange(random, 600, 1300), this.randomRange(random, 280, 440), 'shield'));
+        this.powerups.push(new PowerUp(this.randomRange(random, 1600, 2800), this.randomRange(random, 260, 420), 'speed'));
+        if (tier % 3 === 0) {
+            this.powerups.push(new PowerUp(this.randomRange(random, 2800, levelLength - 620), this.randomRange(random, 240, 400), 'health'));
+        }
+
+        this.goalX = finalPlatformX + 140;
+        this.goalY = finalPlatformY;
     }
 
     buildPlatformRenderCache() {
@@ -1313,7 +1559,7 @@ class Level {
         this.goalY = 270;
     }
 
-    generateLevelRM() {
+    generateLevelJimin() {
         this.platforms.push(new Platform(0, 550, 5000, 50, 'normal'));
         this.platforms.push(new Platform(180, 480, 120, 20, 'normal'));
         this.platforms.push(new Platform(430, 420, 110, 20, 'normal'));
@@ -1458,10 +1704,69 @@ class Level {
         this.goalY = 220;
     }
 
+    generateLevelRM() {
+        this.platforms.push(new Platform(0, 550, 7600, 50, 'normal'));
+        this.platforms.push(new Platform(240, 470, 130, 20, 'moving'));
+        this.platforms.push(new Platform(520, 410, 120, 20, 'normal'));
+        this.platforms.push(new Platform(820, 350, 120, 20, 'moving'));
+        this.platforms.push(new Platform(1160, 430, 130, 20, 'normal'));
+        this.platforms.push(new Platform(1490, 320, 130, 20, 'moving'));
+        this.platforms.push(new Platform(1840, 400, 140, 20, 'normal'));
+        this.platforms.push(new Platform(2220, 280, 130, 20, 'moving'));
+        this.platforms.push(new Platform(2600, 360, 140, 20, 'normal'));
+        this.platforms.push(new Platform(3000, 250, 150, 20, 'moving'));
+        this.platforms.push(new Platform(3430, 330, 150, 20, 'normal'));
+        this.platforms.push(new Platform(3890, 220, 160, 20, 'normal'));
+        this.platforms.push(new Platform(4350, 300, 150, 20, 'moving'));
+        this.platforms.push(new Platform(4820, 210, 170, 20, 'normal'));
+        this.platforms.push(new Platform(5330, 300, 170, 20, 'moving'));
+        this.platforms.push(new Platform(5850, 200, 190, 20, 'normal'));
+
+        this.fireTraps.push(new FireTrap(1280, 500, { segmentCount: 6, segmentSpacing: 20, fireSize: 15, arms: 1, rotationSpeed: 0.07 }));
+        this.fireTraps.push(new FireTrap(2730, 500, { segmentCount: 7, segmentSpacing: 19, fireSize: 15, arms: 1, rotationSpeed: -0.065 }));
+        this.fireTraps.push(new FireTrap(4470, 500, { segmentCount: 6, segmentSpacing: 20, fireSize: 15, arms: 1, rotationSpeed: 0.07 }));
+
+        this.cannonShots.push(new CannonShot(470, 8.8, 22));
+        this.cannonShots.push(new CannonShot(410, 10.2, 24));
+        this.cannonShots.push(new CannonShot(340, 11.2, 20));
+
+        this.coins.push(new Coin(260, 440, true));
+        this.coins.push(new Coin(540, 380, false));
+        this.coins.push(new Coin(860, 320, true));
+        this.coins.push(new Coin(1190, 400, false));
+        this.coins.push(new Coin(1520, 290, true));
+        this.coins.push(new Coin(1870, 370, false));
+        this.coins.push(new Coin(2250, 250, true));
+        this.coins.push(new Coin(2630, 330, false));
+        this.coins.push(new Coin(3030, 220, true));
+        this.coins.push(new Coin(3460, 300, false));
+        this.coins.push(new Coin(3920, 190, true));
+        this.coins.push(new Coin(4380, 270, false));
+        this.coins.push(new Coin(4850, 180, true));
+        this.coins.push(new Coin(5360, 270, false));
+        this.coins.push(new Coin(5880, 170, true));
+
+        this.powerups.push(new PowerUp(1190, 400, 'shield'));
+        this.powerups.push(new PowerUp(3030, 220, 'speed'));
+        this.powerups.push(new PowerUp(4850, 180, 'health'));
+
+        this.enemies.push(new Enemy(560, 380, 'fast'));
+        this.enemies.push(new Enemy(1220, 400, 'normal'));
+        this.enemies.push(new Enemy(1890, 370, 'fast'));
+        this.enemies.push(new Enemy(2660, 330, 'normal'));
+        this.enemies.push(new Enemy(3470, 300, 'fast'));
+        this.enemies.push(new Enemy(4390, 270, 'flying'));
+        this.enemies.push(new Enemy(5380, 270, 'teleport'));
+
+        this.goalX = 5930;
+        this.goalY = 200;
+    }
+
     update() {
         for (let platform of this.dynamicPlatforms) platform.update();
         for (let enemy of this.enemies) enemy.update(this.platforms);
         for (let trap of this.fireTraps) trap.update();
+        for (let shot of this.cannonShots) shot.update(game?.cameraX || 0);
         for (let coin of this.coins) coin.update();
     }
 
@@ -1500,6 +1805,12 @@ class Level {
         for (let enemy of this.enemies) {
             if (this.isRectVisible(enemy.x, enemy.y, enemy.width, enemy.height, game.cameraX)) {
                 enemy.draw(ctx, game.cameraX);
+            }
+        }
+
+        for (let shot of this.cannonShots) {
+            if (this.isRectVisible(shot.x, shot.y, shot.width, shot.height, game.cameraX, 220)) {
+                shot.draw(ctx, game.cameraX);
             }
         }
 
@@ -1561,6 +1872,7 @@ class Level {
 class Game {
     constructor() {
         this.state = 'menu';
+        this.mode = 'normal';
         this.currentLevel = 1;
         this.level = null;
         this.player = null;
@@ -1578,6 +1890,33 @@ class Game {
         this.hudFrameThrottle = 0;
     }
 
+    setMode(mode) {
+        const validModes = ['normal', 'hardcore', 'infinito'];
+        if (!validModes.includes(mode)) return;
+        this.mode = mode;
+
+        const modeDescription = document.getElementById('menuModeDescription');
+        if (modeDescription) {
+            if (mode === 'normal') modeDescription.textContent = 'Normal: experiencia equilibrada';
+            else if (mode === 'hardcore') modeDescription.textContent = 'Hardcore: menos margen de error y más velocidad';
+            else modeDescription.textContent = 'Infinito: niveles generados automáticamente con dificultad creciente';
+        }
+
+        const normalBtn = document.getElementById('modeNormal');
+        const hardcoreBtn = document.getElementById('modeHardcore');
+        const infiniteBtn = document.getElementById('modeInfinite');
+
+        if (normalBtn) normalBtn.classList.toggle('active', mode === 'normal');
+        if (hardcoreBtn) hardcoreBtn.classList.toggle('active', mode === 'hardcore');
+        if (infiniteBtn) infiniteBtn.classList.toggle('active', mode === 'infinito');
+
+        const pauseModeNote = document.getElementById('pauseModeNote');
+        if (pauseModeNote) {
+            const modeLabel = mode === 'normal' ? 'Normal' : mode === 'hardcore' ? 'Hardcore' : 'Infinito';
+            pauseModeNote.textContent = `Modo actual: ${modeLabel}`;
+        }
+    }
+
     setState(nextState) {
         if (this.state === nextState) return;
         this.state = nextState;
@@ -1591,8 +1930,22 @@ class Game {
 
     loadLevel(levelNumber) {
         this.currentLevel = levelNumber;
-        this.level = new Level(levelNumber);
+        this.level = new Level(levelNumber, {
+            mode: this.mode,
+            difficultyTier: this.mode === 'infinito' ? levelNumber : Math.min(levelNumber, 7)
+        });
         this.player = new Player();
+
+        if (this.mode === 'hardcore') {
+            this.player.lives = 1;
+            for (let enemy of this.level.enemies) {
+                enemy.speed *= 1.25;
+            }
+            for (let shot of this.level.cannonShots) {
+                shot.speed *= 1.2;
+            }
+        }
+
         this.cameraX = 0;
         this.lastHudHtml = '';
         this.lastHudKey = '';
@@ -1603,6 +1956,9 @@ class Game {
                 `[LEVEL ${levelNumber}] static=${this.level.staticPlatforms.length} moving=${this.level.dynamicPlatforms.length} ` +
                 `enemies=${this.level.enemies.length} traps=${this.level.fireTraps.length} coins=${this.level.coins.length} powerups=${this.level.powerups.length} width=${this.level.levelWidth}`
             );
+
+            const portraitSource = spriteManager?.getMemberPortraitSource(this.level.memberName);
+            console.log(`[LEVEL ${levelNumber}] miembro=${this.level.memberName} retrato=${portraitSource || 'tileset-fallback'}`);
         }
     }
 
@@ -1610,6 +1966,11 @@ class Game {
         if (this.state !== 'playing') return;
 
         this.player.update(this.level.platforms);
+        if (this.player.lives <= 0) {
+            this.setState('gameOver');
+            this.saveBestScore();
+            return;
+        }
         this.cameraX = Math.max(0, this.player.x - 300);
 
         // Colisión con enemigos
@@ -1636,6 +1997,20 @@ class Game {
             }
         }
 
+        // Colisión con disparos de cañón (muerte instantánea)
+        for (let shot of this.level.cannonShots) {
+            if (this.checkCollision(this.player, shot) && this.player.damageTimer <= 0) {
+                this.player.takeDamage();
+                this.player.vy = -7;
+                this.player.y -= 10;
+                if (this.player.lives <= 0) {
+                    this.setState('gameOver');
+                    this.saveBestScore();
+                    return;
+                }
+            }
+        }
+
         // Monedas
         for (let i = this.level.coins.length - 1; i >= 0; i--) {
             let coin = this.level.coins[i];
@@ -1651,7 +2026,7 @@ class Game {
             if (this.checkCollision(this.player, powerup)) {
                 if (powerup.type === 'shield') this.player.shieldTime = 300;
                 else if (powerup.type === 'speed') this.player.speedTime = 300;
-                else if (powerup.type === 'health') this.player.lives++;
+                else if (powerup.type === 'health' && this.mode !== 'hardcore') this.player.lives++;
                 this.level.powerups.splice(i, 1);
             }
         }
@@ -1664,12 +2039,16 @@ class Game {
             height: this.level.goalHeight
         })) {
             this.score += 500 + Math.max(0, this.player.lives) * 500;
-            if (this.currentLevel < 6) {
+            if (this.mode === 'infinito') {
                 this.setState('levelComplete');
-                this.messageTimer = 120;
             } else {
-                this.setState('victory');
-                this.saveBestScore();
+                const totalLevels = this.level?.members?.length || 7;
+                if (this.currentLevel < totalLevels) {
+                    this.setState('levelComplete');
+                } else {
+                    this.setState('victory');
+                    this.saveBestScore();
+                }
             }
         }
 
@@ -1714,17 +2093,6 @@ class Game {
             this.level.draw(ctx);
             this.player.draw(ctx, this.cameraX);
             this.drawHUD();
-
-            if (this.messageTimer > 0) {
-                this.messageTimer--;
-                if (this.state === 'levelComplete') {
-                    this.drawMessage('✓ ¡NIVEL COMPLETO!', '#FFD700');
-                    if (this.messageTimer === 0) {
-                        this.loadLevel(this.currentLevel + 1);
-                        this.setState('playing');
-                    }
-                }
-            }
         }
     }
 
@@ -1746,7 +2114,9 @@ class Game {
         }
         this.lastHudKey = hudKey;
 
-        let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${this.currentLevel}/6</span></div>
+        const totalLevels = this.level?.members?.length || 7;
+        const levelDisplay = this.mode === 'infinito' ? `${this.currentLevel}/∞` : `${this.currentLevel}/${totalLevels}`;
+        let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${levelDisplay}</span></div>
                    <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value">${this.level.memberName}</span></div>
                    <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value">${this.score}</span></div>
                    <div class="hud-line"><span class="hud-label">Mejor:</span> <span class="hud-value">${this.bestScore}</span></div>
@@ -1847,17 +2217,19 @@ class Game {
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const victoryOverlay = document.getElementById('victoryOverlay');
         const pauseOverlay = document.getElementById('pauseOverlay');
+        const levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
         const gameOverScore = document.getElementById('gameOverScore');
         const victoryScore = document.getElementById('victoryScore');
         const volumeButton = document.getElementById('volumeButton');
 
-        if (!menuOverlay || !gameOverOverlay || !victoryOverlay || !pauseOverlay) return;
+        if (!menuOverlay || !gameOverOverlay || !victoryOverlay || !pauseOverlay || !levelCompleteOverlay) return;
 
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
         menuOverlay.classList.toggle('hidden', this.state !== 'menu');
         gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
         victoryOverlay.classList.toggle('hidden', this.state !== 'victory');
         pauseOverlay.classList.toggle('hidden', this.state !== 'paused');
+        levelCompleteOverlay.classList.toggle('hidden', this.state !== 'levelComplete');
 
         if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
         if (victoryScore) victoryScore.textContent = `Puntuación final: ${this.score}`;
@@ -1901,7 +2273,10 @@ class Game {
 
     showModePreview() {
         const note = document.getElementById('pauseModeNote');
-        if (note) note.textContent = 'Modo de juego: próximamente (Arcade, Desafío, Hardcore)';
+        if (note) {
+            const modeLabel = this.mode === 'normal' ? 'Normal' : this.mode === 'hardcore' ? 'Hardcore' : 'Infinito';
+            note.textContent = `Modo actual: ${modeLabel}`;
+        }
     }
 
     loadBestScore() {
@@ -1990,6 +2365,25 @@ class Game {
         this.loadLevel(this.currentLevel);
         this.syncOverlays();
     }
+
+    goToNextLevel() {
+        if (this.state !== 'levelComplete') return;
+        if (this.mode === 'infinito') {
+            this.loadLevel(this.currentLevel + 1);
+            this.setState('playing');
+            return;
+        }
+
+        const totalLevels = this.level?.members?.length || 7;
+
+        if (this.currentLevel >= totalLevels) {
+            this.setState('victory');
+            return;
+        }
+
+        this.loadLevel(this.currentLevel + 1);
+        this.setState('playing');
+    }
 }
 
 // ============================================
@@ -2076,16 +2470,24 @@ window.addEventListener('load', () => {
     spriteManager = new TiledSpriteManager();
     game = new Game();
     const playButton = document.getElementById('playButton');
+    const modeNormal = document.getElementById('modeNormal');
+    const modeHardcore = document.getElementById('modeHardcore');
+    const modeInfinite = document.getElementById('modeInfinite');
     const retryButton = document.getElementById('retryButton');
     const saveWinnerButton = document.getElementById('saveWinnerButton');
+    const nextLevelButton = document.getElementById('nextLevelButton');
     const winnerNameInput = document.getElementById('winnerNameInput');
     const resumeButton = document.getElementById('resumeButton');
     const volumeButton = document.getElementById('volumeButton');
     const modeButton = document.getElementById('modeButton');
 
     if (playButton) playButton.addEventListener('click', () => game.startGame());
+    if (modeNormal) modeNormal.addEventListener('click', () => game.setMode('normal'));
+    if (modeHardcore) modeHardcore.addEventListener('click', () => game.setMode('hardcore'));
+    if (modeInfinite) modeInfinite.addEventListener('click', () => game.setMode('infinito'));
     if (retryButton) retryButton.addEventListener('click', () => game.retry());
     if (saveWinnerButton) saveWinnerButton.addEventListener('click', () => game.submitWinnerName());
+    if (nextLevelButton) nextLevelButton.addEventListener('click', () => game.goToNextLevel());
     if (resumeButton) resumeButton.addEventListener('click', () => game.closePauseMenu());
     if (volumeButton) volumeButton.addEventListener('click', () => game.toggleVolume());
     if (modeButton) modeButton.addEventListener('click', () => game.showModePreview());
@@ -2094,6 +2496,8 @@ window.addEventListener('load', () => {
             if (e.key === 'Enter') game.submitWinnerName();
         });
     }
+
+    game.setMode('normal');
 
     game.syncOverlays();
     game.renderLeaderboard();

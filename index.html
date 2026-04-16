@@ -58,6 +58,7 @@
             position: relative;
             width: 1000px;
             margin: 0 auto;
+            overflow: hidden;
         }
 
         .overlay {
@@ -90,6 +91,47 @@
             font-size: 1.25em;
             color: #fff;
             margin-bottom: 24px;
+        }
+
+        .menu-mode-title {
+            font-size: 2em;
+            color: #FFD700;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+        }
+
+        .menu-modes {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .menu-mode-btn {
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            min-width: 130px;
+            font-size: 0.92em;
+            font-weight: bold;
+        }
+
+        .menu-mode-btn.active {
+            border-color: #FFD700;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+            background: rgba(255, 215, 0, 0.12);
+            color: #FFD700;
+        }
+
+        .menu-mode-desc {
+            font-size: 0.95em;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
         }
 
         .overlay-button {
@@ -284,36 +326,43 @@
 
         #hud {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(155, 89, 182, 0.3));
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid #FFD700;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 24px);
+            max-width: 976px;
+            padding: 0;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 12px;
             color: #FFD700;
-            z-index: 1000;
-            max-width: 300px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            z-index: 12;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 8px 14px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+            pointer-events: none;
         }
 
         .hud-line {
-            margin: 6px 0;
-            padding: 3px 0;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            margin: 0;
+            padding: 0;
+            border-bottom: none;
+            white-space: nowrap;
         }
 
         .hud-lives {
             border-bottom: none;
-            padding-top: 8px;
+            padding-top: 0;
         }
 
         .hud-label {
             color: #FFD700;
             font-weight: bold;
             display: inline-block;
-            min-width: 80px;
+            min-width: auto;
+            margin-right: 4px;
         }
 
         .hud-value {
@@ -324,8 +373,20 @@
         .life-icon {
             display: inline-block;
             margin: 0 2px;
-            font-size: 16px;
+            font-size: 14px;
             filter: drop-shadow(0 0 2px #FF1493);
+        }
+
+        @media (max-width: 900px) {
+            #hud {
+                justify-content: flex-start;
+                left: 10px;
+                right: 10px;
+                transform: none;
+                width: auto;
+                gap: 6px 10px;
+                font-size: 11px;
+            }
         }
 
         #message {
@@ -349,20 +410,47 @@
                 display: none;
             }
         }
+
+        .dedication-note {
+            position: absolute;
+            right: 14px;
+            bottom: 10px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.72);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 MARIO BROS BTS 💜</h1>
-        <p class="subtitle">¡Rescata a todos los miembros de BTS!</p>
+        <h1>🎮 Rescata a los miembros de BTS 💜</h1>
+        <p class="subtitle">Recoge monedas, evita enemigos y llega a la meta</p>
 
         <div class="stage">
             <canvas id="gameCanvas" width="1000" height="600"></canvas>
 
+            <div id="hud">
+                <div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value" id="hudLevel">1/7</span></div>
+                <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value" id="hudMember">Jin</span></div>
+                <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value" id="hudScore">0</span></div>
+                <div class="hud-line"><span class="hud-label">Mejor:</span> <span class="hud-value" id="hudBest">0</span></div>
+                <div class="hud-line"><span class="hud-label">Vidas:</span> <span class="hud-value" id="hudLives">3</span></div>
+                <div class="hud-line"><span class="hud-label">Escudo:</span> <span class="hud-value" id="hudShield">No</span></div>
+                <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value" id="hudSpeed">Normal</span></div>
+            </div>
+
             <div id="menuOverlay" class="overlay hidden">
-                <div class="overlay-title">MARIO BROS BTS</div>
-                <div class="overlay-subtitle">Recoge monedas, evita enemigos y llega a la meta</div>
+                <div class="menu-mode-title">Selecciona modo de juego</div>
+                <div class="menu-modes">
+                    <button id="modeNormal" class="menu-mode-btn active" data-mode="normal">Normal</button>
+                    <button id="modeHardcore" class="menu-mode-btn" data-mode="hardcore">Hardcore</button>
+                    <button id="modeInfinite" class="menu-mode-btn" data-mode="infinito">Infinito</button>
+                </div>
+                <div id="menuModeDescription" class="menu-mode-desc">Normal: experiencia equilibrada</div>
                 <button id="playButton" class="overlay-button">PLAY</button>
+                <div class="dedication-note">Juego dedicado a Alexandra Paz</div>
             </div>
 
             <div id="gameOverOverlay" class="overlay hidden">
@@ -387,21 +475,17 @@
                         <button id="volumeButton" class="overlay-button secondary">VOLUMEN: 100%</button>
                         <button id="modeButton" class="overlay-button ghost">CAMBIAR MODO DE JUEGO</button>
                     </div>
-                    <div id="pauseModeNote" class="pause-mini-note">Próximamente: modos Arcade, Desafío y Hardcore</div>
+                    <div id="pauseModeNote" class="pause-mini-note">Modo actual: Normal</div>
                 </div>
+            </div>
+
+            <div id="levelCompleteOverlay" class="overlay hidden">
+                <div class="overlay-title" style="color:#FFD700;">✓ ¡NIVEL COMPLETO!</div>
+                <div class="overlay-subtitle">Miembro rescatado. Continúa cuando quieras.</div>
+                <button id="nextLevelButton" class="overlay-button secondary">PASAR AL SIGUIENTE NIVEL</button>
             </div>
         </div>
         
-        <div id="hud">
-            <div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value" id="hudLevel">1/6</span></div>
-            <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value" id="hudMember">Jin</span></div>
-            <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value" id="hudScore">0</span></div>
-            <div class="hud-line"><span class="hud-label">Mejor:</span> <span class="hud-value" id="hudBest">0</span></div>
-            <div class="hud-line"><span class="hud-label">Vidas:</span> <span class="hud-value" id="hudLives">3</span></div>
-            <div class="hud-line"><span class="hud-label">Escudo:</span> <span class="hud-value" id="hudShield">No</span></div>
-            <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value" id="hudSpeed">Normal</span></div>
-        </div>
-
         <div id="message"></div>
 
         <div class="controls">
