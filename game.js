@@ -1150,24 +1150,22 @@ class Game {
         this.syncOverlays();
 
         if (this.state === 'loading') {
-            this.drawLoading();
+            this.drawOverlayBackground();
             return;
         }
 
         if (this.state === 'menu') {
-            this.drawMenu();
+            this.drawOverlayBackground();
             return;
         }
 
         if (this.state === 'gameOver') {
-            this.drawGameOver();
+            this.drawOverlayBackground();
             return;
         }
 
         if (this.state === 'victory') {
-            this.level.draw(ctx);
-            this.player.draw(ctx, this.cameraX);
-            this.drawHUD();
+            this.drawOverlayBackground();
             return;
         }
 
@@ -1187,6 +1185,11 @@ class Game {
                 }
             }
         }
+    }
+
+    drawOverlayBackground() {
+        ctx.fillStyle = '#0d1b2a';
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
     drawHUD() {
