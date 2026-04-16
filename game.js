@@ -1327,19 +1327,28 @@ class Level {
         this.platforms.push(new Platform(0, 550, levelLength, 50, 'normal'));
 
         let platformX = 170;
-        let platformY = 470;
-        const elevatedPlatforms = 12 + Math.floor(tier * 0.9);
+        let platformY = 500;
+        const elevatedPlatforms = 11 + Math.floor(tier * 0.75);
 
         for (let i = 0; i < elevatedPlatforms; i++) {
-            const jumpStep = Math.floor(this.randomRange(random, 170, 280));
+            const jumpStep = Math.floor(this.randomRange(random, 130, 220));
+            const prevX = platformX;
+            const prevY = platformY;
             platformX += jumpStep;
             if (platformX > levelLength - 520) break;
 
-            const deltaY = Math.floor(this.randomRange(random, -62, 62));
-            platformY = Math.max(250, Math.min(500, platformY + deltaY));
+            const deltaY = Math.floor(this.randomRange(random, -40, 40));
+            platformY = Math.max(270, Math.min(510, platformY + deltaY));
 
-            const width = Math.floor(this.randomRange(random, 105, 170));
+            const width = Math.floor(this.randomRange(random, 130, 190));
             const type = random() < movingChance ? 'moving' : 'normal';
+
+            if (jumpStep > 185 || Math.abs(platformY - prevY) > 28) {
+                const bridgeX = prevX + Math.floor((platformX - prevX) * 0.5) - 55;
+                const bridgeY = Math.max(290, Math.min(505, Math.round((prevY + platformY) / 2)));
+                this.platforms.push(new Platform(bridgeX, bridgeY, 110, 20, random() < 0.25 ? 'moving' : 'normal'));
+            }
+
             this.platforms.push(new Platform(platformX, platformY, width, 20, type));
 
             if (random() < 0.92) {
@@ -1347,9 +1356,13 @@ class Level {
             }
         }
 
-        const finalPlatformX = levelLength - 340;
-        const finalPlatformY = Math.max(220, Math.min(460, platformY - 15));
-        this.platforms.push(new Platform(finalPlatformX, finalPlatformY, 210, 20, 'normal'));
+        const finalPlatformX = levelLength - 300;
+        const finalPlatformY = Math.max(280, Math.min(470, platformY - 5));
+        this.platforms.push(new Platform(finalPlatformX, finalPlatformY, 230, 20, 'normal'));
+
+        const beforeFinalX = finalPlatformX - 250;
+        const beforeFinalY = Math.max(300, Math.min(500, finalPlatformY + (random() < 0.5 ? -20 : 20)));
+        this.platforms.push(new Platform(beforeFinalX, beforeFinalY, 170, 20, random() < 0.3 ? 'moving' : 'normal'));
 
         for (let i = 0; i < enemyCount; i++) {
             const ex = this.randomRange(random, 350, levelLength - 420);
