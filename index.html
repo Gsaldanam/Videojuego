@@ -109,6 +109,23 @@
             transform: translateY(-1px);
         }
 
+        .overlay-input {
+            width: 320px;
+            max-width: 80%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 2px solid #FFD700;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 1em;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .overlay-input::placeholder {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
         .controls {
             margin-top: 20px;
             padding: 20px;
@@ -190,8 +207,17 @@
         }
 
         .leaderboard-score {
-            margin-left: auto;
             font-weight: bold;
+            color: #fff;
+            min-width: 56px;
+            text-align: right;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
             color: #fff;
         }
 
@@ -299,6 +325,13 @@
                 <div class="overlay-title" style="color:#ff4444;">GAME OVER</div>
                 <div class="overlay-subtitle" id="gameOverScore">Puntuación: 0</div>
                 <button id="retryButton" class="overlay-button">REINTENTAR</button>
+            </div>
+
+            <div id="victoryOverlay" class="overlay hidden">
+                <div class="overlay-title" style="color:#FFD700;">¡GANASTE! 🎉</div>
+                <div class="overlay-subtitle" id="victoryScore">Puntuación final: 0</div>
+                <input id="winnerNameInput" class="overlay-input" type="text" maxlength="20" placeholder="Escribe tu nombre" />
+                <button id="saveWinnerButton" class="overlay-button">GUARDAR PUNTUACIÓN</button>
             </div>
         </div>
         

@@ -921,9 +921,10 @@ class Level {
         this.platforms.push(new Platform(1950, 280, 100, 20, 'moving'));
         this.platforms.push(new Platform(2200, 360, 120, 20, 'normal'));
         this.platforms.push(new Platform(2450, 240, 100, 20, 'normal'));
-        this.platforms.push(new Platform(2700, 320, 120, 20, 'moving'));
-        this.platforms.push(new Platform(2950, 200, 150, 20, 'normal'));
-        this.platforms.push(new Platform(3100, 280, 200, 20, 'normal'));
+        this.platforms.push(new Platform(2620, 300, 120, 20, 'normal'));
+        this.platforms.push(new Platform(2780, 260, 120, 20, 'normal'));
+        this.platforms.push(new Platform(2940, 220, 150, 20, 'normal'));
+        this.platforms.push(new Platform(3100, 240, 200, 20, 'normal'));
         
         // Protección bajo trampas
         this.platforms.push(new Platform(900, 450, 100, 20, 'normal'));
@@ -939,7 +940,7 @@ class Level {
         let coinPositions = [
             [200, 450], [450, 360], [700, 430], [950, 310], [1200, 390],
             [1450, 270], [1700, 350], [1950, 250], [2200, 330], [2450, 210],
-            [2700, 290], [2950, 170], [3100, 250], [3200, 250], [3000, 250],
+            [2620, 270], [2780, 230], [2940, 190], [3100, 210], [3200, 210],
             [255, 450], [500, 360], [750, 430], [1100, 310], [1350, 390]
         ];
         for (let i = 0; i < 20; i++) {
@@ -952,7 +953,6 @@ class Level {
         this.powerups.push(new PowerUp(650, 430, 'shield'));
         this.powerups.push(new PowerUp(1500, 270, 'speed'));
         this.powerups.push(new PowerUp(2500, 210, 'health'));
-        this.powerups.push(new PowerUp(3000, 170, 'shield'));
 
         // Enemigos en nivel jugable - distribuidos
         this.enemies.push(new Enemy(300, 450, 'normal'));
@@ -961,7 +961,7 @@ class Level {
         this.enemies.push(new Enemy(1350, 390, 'fast'));
         this.enemies.push(new Enemy(1700, 350, 'normal'));
         this.enemies.push(new Enemy(2100, 450, 'fast'));
-        this.enemies.push(new Enemy(2550, 210, 'fast'));
+        this.enemies.push(new Enemy(2720, 230, 'fast'));
         this.enemies.push(new Enemy(2900, 450, 'normal'));
 
         this.goalX = 3100;
@@ -1049,7 +1049,6 @@ class Game {
                 if (this.player.lives <= 0) {
                     this.state = 'gameOver';
                     this.saveBestScore();
-                    this.saveLeaderboardScore();
                 }
             }
         }
@@ -1062,7 +1061,6 @@ class Game {
                     if (this.player.lives <= 0) {
                         this.state = 'gameOver';
                         this.saveBestScore();
-                        this.saveLeaderboardScore();
                     }
                 }
             }
@@ -1095,8 +1093,9 @@ class Game {
                 this.state = 'levelComplete';
                 this.messageTimer = 120;
             } else {
-                this.state = 'ending';
-                this.messageTimer = 300;
+                this.state = 'victory';
+                this.saveBestScore();
+                this.syncOverlays();
             }
         }
 
@@ -1132,7 +1131,14 @@ class Game {
             return;
         }
 
-        if (this.state === 'playing' || this.state === 'levelComplete' || this.state === 'ending') {
+        if (this.state === 'victory') {
+            this.level.draw(ctx);
+            this.player.draw(ctx, this.cameraX);
+            this.drawHUD();
+            return;
+        }
+
+        if (this.state === 'playing' || this.state === 'levelComplete') {
             this.level.draw(ctx);
             this.player.draw(ctx, this.cameraX);
             this.drawHUD();
@@ -1145,20 +1151,13 @@ class Game {
                         this.loadLevel(this.currentLevel + 1);
                         this.state = 'playing';
                     }
-                } else if (this.state === 'ending') {
-                    this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
-                    if (this.messageTimer === 0) {
-                        this.state = 'gameOver';
-                        this.saveBestScore();
-                        this.saveLeaderboardScore();
-                    }
                 }
             }
         }
     }
 
     drawHUD() {
-        if (this.state !== 'playing' && this.state !== 'levelComplete' && this.state !== 'ending') return;
+        if (this.state !== 'playing' && this.state !== 'levelComplete' && this.state !== 'victory') return;
         
         const hud = document.getElementById('hud');
         let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${this.currentLevel}/6</span></div>
@@ -1279,15 +1278,19 @@ class Game {
         const loadingOverlay = document.getElementById('loadingOverlay');
         const menuOverlay = document.getElementById('menuOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const victoryOverlay = document.getElementById('victoryOverlay');
         const gameOverScore = document.getElementById('gameOverScore');
+        const victoryScore = document.getElementById('victoryScore');
 
-        if (!loadingOverlay || !menuOverlay || !gameOverOverlay) return;
+        if (!loadingOverlay || !menuOverlay || !gameOverOverlay || !victoryOverlay) return;
 
         loadingOverlay.classList.toggle('hidden', this.state !== 'loading');
         menuOverlay.classList.toggle('hidden', this.state !== 'menu');
         gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
+        victoryOverlay.classList.toggle('hidden', this.state !== 'victory');
 
         if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
+        if (victoryScore) victoryScore.textContent = `Puntuación final: ${this.score}`;
     }
 
     loadBestScore() {
@@ -1310,9 +1313,10 @@ class Game {
         }
     }
 
-    saveLeaderboardScore() {
+    saveLeaderboardScore(name) {
         const leaderboard = this.loadLeaderboard();
-        leaderboard.push({ score: this.score, date: new Date().toLocaleDateString('es-ES') });
+        const cleanName = (name || '').trim().slice(0, 20) || 'Jugador';
+        leaderboard.push({ name: cleanName, score: this.score, date: new Date().toLocaleDateString('es-ES') });
         leaderboard.sort((a, b) => b.score - a.score);
         const top = leaderboard.slice(0, 5);
         localStorage.setItem('btsGameLeaderboard', JSON.stringify(top));
@@ -1331,10 +1335,28 @@ class Game {
         board.innerHTML = list.map((entry, index) => `
             <div class="leaderboard-item ${index === 0 ? 'top' : ''}">
                 <span class="leaderboard-rank">${index + 1}.</span>
+                <span class="leaderboard-name">${entry.name || 'Jugador'}</span>
                 <span class="leaderboard-score">${entry.score}</span>
                 <span class="leaderboard-date">${entry.date}</span>
             </div>
         `).join('');
+    }
+
+    submitWinnerName() {
+        if (this.state !== 'victory') return;
+        const input = document.getElementById('winnerNameInput');
+        const name = input ? input.value : '';
+        this.saveLeaderboardScore(name);
+        if (input) input.value = '';
+        this.state = 'menu';
+        this.currentLevel = 1;
+        this.score = 0;
+        this.level = null;
+        this.player = null;
+        this.cameraX = 0;
+        this.messageTimer = 0;
+        document.getElementById('hud').innerHTML = '';
+        this.syncOverlays();
     }
 
     retry() {
@@ -1401,9 +1423,17 @@ window.addEventListener('load', () => {
     game = new Game();
     const playButton = document.getElementById('playButton');
     const retryButton = document.getElementById('retryButton');
+    const saveWinnerButton = document.getElementById('saveWinnerButton');
+    const winnerNameInput = document.getElementById('winnerNameInput');
 
     if (playButton) playButton.addEventListener('click', () => game.startGame());
     if (retryButton) retryButton.addEventListener('click', () => game.retry());
+    if (saveWinnerButton) saveWinnerButton.addEventListener('click', () => game.submitWinnerName());
+    if (winnerNameInput) {
+        winnerNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') game.submitWinnerName();
+        });
+    }
 
     game.syncOverlays();
     game.renderLeaderboard();
