@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Mario Bros BTS - El Juego 💜</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #9B59B6 0%, #2c0845 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .subtitle {
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        canvas {
+            background: #1a1a2e;
+            border: 4px solid #FFD700;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            cursor: pointer;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .controls h3 {
+            margin-bottom: 10px;
+            color: #FFD700;
+        }
+
+        .controls p {
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .key {
+            background: #FFD700;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            min-width: 40px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #FFD700;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .hud-line {
+            margin: 5px 0;
+        }
+
+        .hud-label {
+            color: #FFD700;
+        }
+
+        .hud-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
+            pointer-events: none;
+        }
+
+        @media (max-width: 1024px) {
+            h1 { font-size: 2em; }
+            canvas { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 MARIO BROS BTS 💜</h1>
+        <p class="subtitle">¡Rescata a todos los miembros de BTS!</p>
+        
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        
+        <div id="hud">
+            <div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value" id="hudLevel">1/6</span></div>
+            <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value" id="hudMember">Jin</span></div>
+            <div class="hud-line"><span class="hud-label">Puntuación:</span> <span class="hud-value" id="hudScore">0</span></div>
+            <div class="hud-line"><span class="hud-label">Mejor:</span> <span class="hud-value" id="hudBest">0</span></div>
+            <div class="hud-line"><span class="hud-label">Vidas:</span> <span class="hud-value" id="hudLives">3</span></div>
+            <div class="hud-line"><span class="hud-label">Escudo:</span> <span class="hud-value" id="hudShield">No</span></div>
+            <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value" id="hudSpeed">Normal</span></div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="controls">
+            <h3>⌨️ CONTROLES</h3>
+            <p><span class="key">←</span> <span class="key">→</span> Mover</p>
+            <p><span class="key">ESPACIO</span> Saltar</p>
+            <p><span class="key">ESC</span> Menú</p>
+            <p style="margin-top: 15px; font-size: 0.85em;">💡 Recoge monedas, evita enemigos y llega a la meta en cada nivel</p>
+        </div>
+
+        <div class="footer">
+            <p>🎮 Creado con mucho 💜 para Alexandra</p>
+            <p>Última actualización: Abril 2026</p>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
