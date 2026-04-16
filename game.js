@@ -25,6 +25,7 @@ class TiledSpriteManager {
     constructor() {
         this.tilesets = {};
         this.backgroundLayers = [];
+        this.memberPortraits = {};
         this.defaultTilesets = {
             tiles: {
                 tsxPath: 'tileset-tiles.tsx',
@@ -55,8 +56,66 @@ class TiledSpriteManager {
     async loadAll() {
         await Promise.all([
             ...Object.entries(this.defaultTilesets).map(([key, config]) => this.loadTileset(key, config)),
-            this.loadBackgroundLayers()
+            this.loadBackgroundLayers(),
+            this.loadMemberPortraits()
         ]);
+    }
+
+    async loadMemberPortraits() {
+        const members = {
+            jimin: [
+                'assets/members/jimin.png'
+            ],
+            jungkook: [
+                'assets/members/jungkook.png'
+            ],
+            v: [
+                'assets/members/v.png'
+            ]
+        };
+
+        const entries = await Promise.all(
+            Object.entries(members).map(async ([name, paths]) => {
+                const image = await this.loadImageWithFallbacks(paths);
+                return [name, image];
+            })
+        );
+
+        for (const [name, image] of entries) {
+            if (image) this.memberPortraits[name] = image;
+        }
+
+        console.log(`[Members] Retratos cargados: ${Object.keys(this.memberPortraits).join(', ') || 'ninguno'}`);
+    }
+
+    getMemberPortrait(memberName) {
+        const normalized = (memberName || '').toLowerCase();
+        const aliases = {
+            jin: 'jimin',
+            jimin: 'jimin',
+            jungkook: 'jungkook',
+            v: 'v'
+        };
+
+        const key = aliases[normalized] || normalized;
+        return this.memberPortraits[key] || null;
+    }
+
+    drawMemberPortrait(ctx, memberName, dx, dy, dw, dh) {
+        const portrait = this.getMemberPortrait(memberName);
+        if (!portrait) return false;
+
+        const scale = Math.min(dw / portrait.width, dh / portrait.height);
+        const imageW = Math.max(1, Math.round(portrait.width * scale));
+        const imageH = Math.max(1, Math.round(portrait.height * scale));
+        const imageX = Math.round(dx + (dw - imageW) / 2);
+        const imageY = Math.round(dy + (dh - imageH) / 2);
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(portrait, imageX, imageY, imageW, imageH);
+        ctx.restore();
+        return true;
     }
 
     async loadBackgroundLayers() {
@@ -1442,8 +1501,17 @@ class Level {
         const goalLeft = goalX - this.goalWidth / 2;
         const goalTop = this.goalY - this.goalHeight;
 
+        const goalPortraitDrawn = spriteManager?.drawMemberPortrait(
+            ctx,
+            this.memberName,
+            goalLeft,
+            goalTop,
+            this.goalWidth,
+            this.goalHeight
+        );
+
         const goalSpriteByLevel = [20, 21, 22, 23, 24, 25];
-        const goalSpriteDrawn = spriteManager?.drawTile(
+        const goalSpriteDrawn = goalPortraitDrawn || spriteManager?.drawTile(
             ctx,
             'characters',
             goalSpriteByLevel[Math.max(0, Math.min(goalSpriteByLevel.length - 1, this.levelNumber - 1))],
