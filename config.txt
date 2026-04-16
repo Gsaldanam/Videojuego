@@ -1,0 +1,36 @@
+# 🎨 Configuración de Personalización del Juego
+# Puedes editar estos valores para personalizar tu juego
+
+# ===== DIFICULTAD =====
+# Aumenta estos valores para hacer el juego más difícil
+GRAVITY = 0.5          # Gravedad (0.4-0.8, mayor = más rápido)
+JUMP_POWER = 12        # Potencia de salto (10-15)
+PLAYER_SPEED = 5       # Velocidad del jugador (3-7)
+ENEMY_SPEED = 2        # Velocidad de enemigos (1-4)
+
+# ===== COLORES PERSONALIZADOS =====
+# Puedes cambiar los colores RGB aquí
+PLAYER_COLOR = (155, 89, 182)      # Morado BTS
+BACKGROUND_COLOR = (10, 10, 20)    # Fondo oscuro
+PLATFORM_COLOR = (155, 89, 182)    # Plataformas
+GOLD_COLOR = (255, 215, 0)         # Monedas
+
+# ===== SONIDOS =====
+# (Requiere archivos .wav o .mp3 en una carpeta 'sounds/')
+ENABLE_SOUND = False               # Cambiar a True si tienes archivos de sonido
+SOUND_JUMP = "sounds/jump.wav"
+SOUND_COIN = "sounds/coin.wav"
+SOUND_POWER_UP = "sounds/powerup.wav"
+
+# ===== DISPLAY =====
+WINDOW_WIDTH = 1000                # Ancho de ventana
+WINDOW_HEIGHT = 600                # Alto de ventana
+FPS = 60                           # Fotogramas por segundo
+
+# ===== NIVELES =====
+STARTING_LEVEL = 0                 # Nivel inicial (0, 1, o 2)
+TOTAL_LIVES = 3                    # Vidas iniciales
+INFINITE_LIVES = False             # True para vidas infinitas
+
+# Para usar esta configuración en el juego, necesitarías importar estos valores
+# Puedes compartir y personalizar este archivo fácilmente
