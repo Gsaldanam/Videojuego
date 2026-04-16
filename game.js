@@ -64,10 +64,10 @@ class TiledSpriteManager {
     async loadMemberPortraits() {
         const members = {
             jin: [
-                'assets/members/jin.png'
+                'assets/members/jimin.png'
             ],
             jimin: [
-                'assets/members/jimin.png'
+                'assets/members/jin.png'
             ],
             jungkook: [
                 'assets/members/jungkook.png'
