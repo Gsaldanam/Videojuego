@@ -1037,7 +1037,7 @@ class Level {
 // ============================================
 class Game {
     constructor() {
-        this.state = 'loading';
+        this.state = 'menu';
         this.currentLevel = 1;
         this.level = null;
         this.player = null;
@@ -1046,7 +1046,6 @@ class Game {
         this.cameraX = 0;
         this.message = '';
         this.messageTimer = 0;
-        this.loadingTimer = 90;
     }
 
     playGame() {
@@ -1061,13 +1060,6 @@ class Game {
     }
 
     update() {
-        if (this.state === 'loading') {
-            this.loadingTimer--;
-            if (this.loadingTimer <= 0) this.state = 'menu';
-            this.syncOverlays();
-            return;
-        }
-
         this.syncOverlays();
 
         if (this.state !== 'playing') return;
@@ -1149,11 +1141,6 @@ class Game {
     draw() {
         this.syncOverlays();
 
-        if (this.state === 'loading') {
-            this.drawOverlayBackground();
-            return;
-        }
-
         if (this.state === 'menu') {
             this.drawOverlayBackground();
             return;
@@ -1221,33 +1208,6 @@ class Game {
         ctx.shadowColor = '#000';
         ctx.shadowBlur = 10;
         ctx.fillText(text, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-    }
-
-    drawLoading() {
-        ctx.fillStyle = '#0d1b2a';
-        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-        ctx.fillStyle = '#FF1493';
-        ctx.font = 'bold 72px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('CARGANDO...', SCREEN_WIDTH / 2, 230);
-
-        ctx.fillStyle = '#FFD700';
-        ctx.font = '28px Arial';
-        ctx.fillText('Preparando la aventura BTS', SCREEN_WIDTH / 2, 285);
-
-        const barWidth = 420;
-        const barX = SCREEN_WIDTH / 2 - barWidth / 2;
-        const barY = 340;
-        const progress = 1 - Math.max(0, this.loadingTimer) / 90;
-
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.fillRect(barX, barY, barWidth, 26);
-        ctx.fillStyle = '#4CAF50';
-        ctx.fillRect(barX, barY, barWidth * progress, 26);
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(barX, barY, barWidth, 26);
     }
 
     drawMenu() {
@@ -1318,9 +1278,9 @@ class Game {
         const gameOverScore = document.getElementById('gameOverScore');
         const victoryScore = document.getElementById('victoryScore');
 
-        if (!loadingOverlay || !menuOverlay || !gameOverOverlay || !victoryOverlay) return;
+        if (!menuOverlay || !gameOverOverlay || !victoryOverlay) return;
 
-        loadingOverlay.classList.toggle('hidden', this.state !== 'loading');
+        if (loadingOverlay) loadingOverlay.classList.add('hidden');
         menuOverlay.classList.toggle('hidden', this.state !== 'menu');
         gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
         victoryOverlay.classList.toggle('hidden', this.state !== 'victory');
