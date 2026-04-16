@@ -23,6 +23,7 @@ let spriteManager;
 class TiledSpriteManager {
     constructor() {
         this.tilesets = {};
+        this.backgroundLayers = [];
         this.defaultTilesets = {
             tiles: {
                 tsxPath: 'tileset-tiles.tsx',
@@ -51,7 +52,47 @@ class TiledSpriteManager {
     }
 
     async loadAll() {
-        await Promise.all(Object.entries(this.defaultTilesets).map(([key, config]) => this.loadTileset(key, config)));
+        await Promise.all([
+            ...Object.entries(this.defaultTilesets).map(([key, config]) => this.loadTileset(key, config)),
+            this.loadBackgroundLayers()
+        ]);
+    }
+
+    async loadBackgroundLayers() {
+        const candidates = [
+            {
+                speed: 0.08,
+                alpha: 0.35,
+                paths: [
+                    'tilemap-backgrounds.png',
+                    './Tilemap/tilemap-backgrounds.png',
+                    '../Tilemap/tilemap-backgrounds.png'
+                ]
+            },
+            {
+                speed: 0.16,
+                alpha: 0.55,
+                paths: [
+                    'tilemap-backgrounds_packed.png',
+                    './Tilemap/tilemap-backgrounds_packed.png',
+                    '../Tilemap/tilemap-backgrounds_packed.png'
+                ]
+            }
+        ];
+
+        const loaded = await Promise.all(
+            candidates.map(async (layer) => {
+                const image = await this.loadImageWithFallbacks(layer.paths);
+                if (!image) return null;
+                return {
+                    image,
+                    speed: layer.speed,
+                    alpha: layer.alpha
+                };
+            })
+        );
+
+        this.backgroundLayers = loaded.filter(Boolean);
     }
 
     async loadTileset(key, config) {
@@ -200,6 +241,34 @@ class TiledSpriteManager {
                 );
             }
         }
+        return true;
+    }
+
+    drawParallaxBackground(ctx, cameraX) {
+        ctx.fillStyle = '#0d1b2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (!this.backgroundLayers.length) return false;
+
+        for (const layer of this.backgroundLayers) {
+            const source = layer.image;
+            if (!source?.width || !source?.height) continue;
+
+            const scale = Math.ceil(Math.max(1, SCREEN_HEIGHT / source.height));
+            const drawW = source.width * scale;
+            const drawH = source.height * scale;
+            const offsetX = -((cameraX * layer.speed) % drawW);
+
+            ctx.save();
+            ctx.globalAlpha = layer.alpha;
+
+            for (let x = offsetX - drawW; x < SCREEN_WIDTH + drawW; x += drawW) {
+                ctx.drawImage(source, x, SCREEN_HEIGHT - drawH, drawW, drawH);
+            }
+
+            ctx.restore();
+        }
+
         return true;
     }
 }
@@ -1204,8 +1273,10 @@ class Level {
     }
 
     draw(ctx) {
-        ctx.fillStyle = '#0d1b2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!spriteManager?.drawParallaxBackground(ctx, game.cameraX)) {
+            ctx.fillStyle = '#0d1b2a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         for (let platform of this.platforms) platform.draw(ctx, game.cameraX);
         for (let trap of this.fireTraps) trap.draw(ctx, game.cameraX);
