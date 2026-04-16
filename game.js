@@ -63,14 +63,14 @@ class TiledSpriteManager {
         const candidates = [
             {
                 speed: 0.05,
-                alpha: 0.9,
+                alpha: 0.72,
                 scale: 5,
                 yOffset: 40,
                 srcPad: 1,
                 cropTop: 14,
-                cropLeftRatio: 0,
-                cropWidthRatio: 0.34,
-                filter: 'saturate(1.25) contrast(1.2) brightness(1.08)',
+                cropLeftRatio: 0.34,
+                cropWidthRatio: 0.32,
+                filter: 'saturate(1.2) contrast(1.18) brightness(1.02)',
                 paths: [
                     'tilemap-backgrounds.png',
                     './Tilemap/tilemap-backgrounds.png',
@@ -79,14 +79,14 @@ class TiledSpriteManager {
             },
             {
                 speed: 0.12,
-                alpha: 1,
+                alpha: 0.86,
                 scale: 6,
                 yOffset: 95,
                 srcPad: 1,
                 cropTop: 10,
-                cropLeftRatio: 0,
-                cropWidthRatio: 0.34,
-                filter: 'saturate(1.35) contrast(1.3) brightness(1.1)',
+                cropLeftRatio: 0.67,
+                cropWidthRatio: 0.31,
+                filter: 'saturate(1.28) contrast(1.24) brightness(1.04)',
                 paths: [
                     'tilemap-backgrounds_packed.png',
                     './Tilemap/tilemap-backgrounds_packed.png',
@@ -116,6 +116,11 @@ class TiledSpriteManager {
 
         this.backgroundLayers = loaded.filter(Boolean);
         console.log(`[Background] Capas cargadas: ${this.backgroundLayers.length}`);
+        this.backgroundLayers.forEach((layer, index) => {
+            const left = Math.round((layer.cropLeftRatio ?? 0) * 100);
+            const width = Math.round((layer.cropWidthRatio ?? 1) * 100);
+            console.log(`[Background] Capa ${index + 1}: zona X ${left}% -> ${left + width}%`);
+        });
     }
 
     async loadTileset(key, config) {
