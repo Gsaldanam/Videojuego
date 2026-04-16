@@ -649,18 +649,21 @@ class Level {
         this.platforms.push(new Platform(2200, 280, 150, 20, 'normal'));
         this.platforms.push(new Platform(2400, 200, 200, 20, 'normal'));
 
-        // Monedas EN el camino
-        for (let i = 0; i < 8; i++) {
-            const platformY = [480, 420, 360, 300, 380, 320, 400, 340][i];
-            this.coins.push(new Coin(300 + i * 200, platformY - 30, i % 2 === 0));
-        }
+        // Monedas ARRIBA de plataformas
+        this.coins.push(new Coin(225, 450, true));
+        this.coins.push(new Coin(475, 390, false));
+        this.coins.push(new Coin(725, 330, true));
+        this.coins.push(new Coin(975, 270, false));
+        this.coins.push(new Coin(1225, 350, true));
+        this.coins.push(new Coin(1475, 290, false));
+        this.coins.push(new Coin(1725, 370, true));
+        this.coins.push(new Coin(1975, 310, false));
 
-        // Enemigos EN el camino (pueden saltarse)
+        // Enemigos separados en plataformas
         this.enemies.push(new Enemy(450, 390, 'normal'));
         this.enemies.push(new Enemy(950, 270, 'normal'));
         this.enemies.push(new Enemy(1700, 370, 'fast'));
 
-        // Meta en altura alcanzable
         this.goalX = 2450;
         this.goalY = 200;
     }
@@ -683,12 +686,19 @@ class Level {
         this.platforms.push(new Platform(2150, 300, 150, 20, 'normal'));
         this.platforms.push(new Platform(2350, 240, 200, 20, 'normal'));
 
-        // Monedas en plataformas
-        for (let i = 0; i < 10; i++) {
-            this.coins.push(new Coin(350 + i * 170, 350, i % 3 === 0));
-        }
+        // Monedas bien posicionadas
+        this.coins.push(new Coin(150, 450, true));
+        this.coins.push(new Coin(350, 390, false));
+        this.coins.push(new Coin(550, 350, true));
+        this.coins.push(new Coin(750, 420, false));
+        this.coins.push(new Coin(950, 350, true));
+        this.coins.push(new Coin(1150, 410, false));
+        this.coins.push(new Coin(1350, 330, true));
+        this.coins.push(new Coin(1550, 390, false));
+        this.coins.push(new Coin(1750, 310, true));
+        this.coins.push(new Coin(1950, 370, false));
 
-        // Enemigos en puntos estratégicos
+        // Enemigos en espacios
         this.enemies.push(new Enemy(550, 350, 'normal'));
         this.enemies.push(new Enemy(950, 350, 'fast'));
         this.enemies.push(new Enemy(1350, 330, 'normal'));
@@ -714,16 +724,24 @@ class Level {
         this.platforms.push(new Platform(2200, 300, 150, 20, 'normal'));
         this.platforms.push(new Platform(2400, 360, 200, 20, 'normal'));
 
-        // Monedas en el camino
-        for (let i = 0; i < 12; i++) {
-            this.coins.push(new Coin(300 + i * 140, 380, i % 4 === 0));
-        }
+        // Monedas en diferentes alturas
+        this.coins.push(new Coin(200, 450, true));
+        this.coins.push(new Coin(450, 430, false));
+        this.coins.push(new Coin(700, 370, true));
+        this.coins.push(new Coin(950, 410, false));
+        this.coins.push(new Coin(1200, 330, true));
+        this.coins.push(new Coin(1450, 390, false));
+        this.coins.push(new Coin(1700, 310, true));
+        this.coins.push(new Coin(1950, 370, false));
+        this.coins.push(new Coin(2200, 270, true));
+        this.coins.push(new Coin(2400, 330, false));
+        this.coins.push(new Coin(2500, 330, true));
+        this.coins.push(new Coin(2300, 330, false));
 
-        // Power-ups en puntos altos
-        this.powerups.push(new PowerUp(700, 370, 'shield'));
-        this.powerups.push(new PowerUp(1450, 390, 'speed'));
+        // Power-ups separados de monedas
+        this.powerups.push(new PowerUp(650, 370, 'shield'));
+        this.powerups.push(new PowerUp(1400, 390, 'speed'));
 
-        // Enemigos en posiciones saltables
         this.enemies.push(new Enemy(450, 430, 'normal'));
         this.enemies.push(new Enemy(950, 410, 'fast'));
         this.enemies.push(new Enemy(1450, 390, 'normal'));
@@ -734,115 +752,161 @@ class Level {
     }
 
     generateLevelRM() {
+        // Piso base amplio
         this.platforms.push(new Platform(0, 550, 5000, 50, 'normal'));
-        this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
-        this.platforms.push(new Platform(300, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(500, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(750, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(950, 450, 130, 20, 'normal'));
-        this.platforms.push(new Platform(1200, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(1400, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1650, 480, 100, 20, 'moving'));
-        this.platforms.push(new Platform(1850, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(2100, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(2350, 450, 150, 20, 'normal'));
+        
+        // Escalera progresiva con enemigos voladores que rodean
+        this.platforms.push(new Platform(200, 480, 120, 20, 'normal'));
+        this.platforms.push(new Platform(450, 410, 100, 20, 'normal'));
+        this.platforms.push(new Platform(700, 470, 120, 20, 'normal'));
+        this.platforms.push(new Platform(950, 390, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1200, 450, 120, 20, 'normal'));
+        this.platforms.push(new Platform(1450, 360, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1700, 430, 120, 20, 'moving'));
+        this.platforms.push(new Platform(1950, 330, 100, 20, 'normal'));
+        this.platforms.push(new Platform(2200, 410, 120, 20, 'normal'));
+        this.platforms.push(new Platform(2400, 280, 150, 20, 'normal'));
 
+        // Monedas dispersas - bien separadas
         for (let i = 0; i < 16; i++) {
-            this.coins.push(new Coin(250 + i * 180, 420, i % 3 === 0));
+            const x = 250 + i * 180;
+            const special = i % 3 === 0;
+            this.coins.push(new Coin(x, 350, special));
         }
 
-        this.powerups.push(new PowerUp(500, 420, 'shield'));
+        // Power-ups EN DIFERENTES POSICIONES que monedas
+        this.powerups.push(new PowerUp(450, 380, 'shield'));
         this.powerups.push(new PowerUp(1200, 420, 'speed'));
+        this.powerups.push(new PowerUp(1950, 300, 'health'));
 
-        this.enemies.push(new Enemy(500, 420, 'flying'));
-        this.enemies.push(new Enemy(950, 420, 'flying'));
-        this.enemies.push(new Enemy(1400, 420, 'flying'));
-        this.enemies.push(new Enemy(1850, 420, 'flying'));
-        this.enemies.push(new Enemy(800, 450, 'normal'));
-        this.enemies.push(new Enemy(2200, 450, 'normal'));
+        // Enemigos voladores a diferentes alturas
+        this.enemies.push(new Enemy(500, 250, 'flying'));
+        this.enemies.push(new Enemy(950, 280, 'flying'));
+        this.enemies.push(new Enemy(1450, 240, 'flying'));
+        this.enemies.push(new Enemy(1950, 200, 'flying'));
+        // Normales en plataformas
+        this.enemies.push(new Enemy(700, 440, 'normal'));
+        this.enemies.push(new Enemy(1450, 330, 'fast'));
 
         this.goalX = 2400;
-        this.goalY = 450;
+        this.goalY = 280;
     }
 
     generateLevelJungkook() {
+        // Piso base
         this.platforms.push(new Platform(0, 550, 5500, 50, 'normal'));
-        this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
-        this.platforms.push(new Platform(300, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(450, 450, 100, 20, 'normal'));
-        this.platforms.push(new Platform(650, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(800, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1000, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(1150, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1350, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(1500, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1700, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(1850, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(2050, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(2200, 450, 150, 20, 'normal'));
+        
+        // Escalera de dificultad con protección para trampas
+        this.platforms.push(new Platform(200, 480, 120, 20, 'normal'));
+        this.platforms.push(new Platform(450, 400, 100, 20, 'normal'));
+        this.platforms.push(new Platform(700, 450, 100, 20, 'normal'));
+        this.platforms.push(new Platform(950, 350, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1200, 420, 120, 20, 'normal'));
+        this.platforms.push(new Platform(1450, 300, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1700, 380, 120, 20, 'normal'));
+        this.platforms.push(new Platform(1950, 280, 100, 20, 'normal'));
+        this.platforms.push(new Platform(2200, 360, 150, 20, 'normal'));
+        this.platforms.push(new Platform(2350, 240, 150, 20, 'normal'));
+        
+        // Plataformas de protección bajo trampas
+        this.platforms.push(new Platform(400, 450, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1150, 450, 100, 20, 'normal'));
 
-        // Trampa de fuego giratorio - bajo nivel
-        this.fireTraps.push(new FireTrap(450, 400));
-        this.fireTraps.push(new FireTrap(1150, 400));
+        // Trampas EN ALTURA PROTEGIDAS
+        this.fireTraps.push(new FireTrap(450, 350));
+        this.fireTraps.push(new FireTrap(1200, 370));
 
-        for (let i = 0; i < 13; i++) {
-            this.coins.push(new Coin(250 + i * 170, 420, i % 3 === 0));
-        }
+        // Monedas en lugares seguros
+        this.coins.push(new Coin(200, 450, true));
+        this.coins.push(new Coin(450, 370, false));
+        this.coins.push(new Coin(700, 420, true));
+        this.coins.push(new Coin(950, 320, false));
+        this.coins.push(new Coin(1200, 390, true));
+        this.coins.push(new Coin(1450, 270, false));
+        this.coins.push(new Coin(1700, 350, true));
+        this.coins.push(new Coin(1950, 250, false));
+        this.coins.push(new Coin(2200, 330, true));
+        this.coins.push(new Coin(2350, 210, false));
+        this.coins.push(new Coin(2450, 210, true));
+        this.coins.push(new Coin(2250, 210, false));
+        this.coins.push(new Coin(2350, 280, true));
 
-        this.powerups.push(new PowerUp(450, 420, 'shield'));
-        this.powerups.push(new PowerUp(1150, 420, 'speed'));
-        this.powerups.push(new PowerUp(1850, 420, 'health'));
+        // Power-ups separados
+        this.powerups.push(new PowerUp(700, 420, 'shield'));
+        this.powerups.push(new PowerUp(1450, 270, 'speed'));
+        this.powerups.push(new PowerUp(1950, 250, 'health'));
 
-        this.enemies.push(new Enemy(450, 420, 'normal'));
-        this.enemies.push(new Enemy(800, 420, 'normal'));
-        this.enemies.push(new Enemy(1150, 420, 'normal'));
-        this.enemies.push(new Enemy(1500, 420, 'normal'));
-        this.enemies.push(new Enemy(1850, 420, 'normal'));
+        // Enemigos normales evitables
+        this.enemies.push(new Enemy(450, 370, 'normal'));
+        this.enemies.push(new Enemy(950, 320, 'normal'));
+        this.enemies.push(new Enemy(1450, 270, 'normal'));
+        this.enemies.push(new Enemy(1700, 350, 'fast'));
         this.enemies.push(new Enemy(300, 450, 'fast'));
 
         this.goalX = 2250;
-        this.goalY = 450;
+        this.goalY = 240;
     }
 
     generateLevelV() {
+        // Piso base muy amplio
         this.platforms.push(new Platform(0, 550, 6000, 50, 'normal'));
-        this.platforms.push(new Platform(100, 480, 120, 20, 'normal'));
-        this.platforms.push(new Platform(300, 480, 100, 20, 'moving'));
-        this.platforms.push(new Platform(500, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(700, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(850, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1050, 480, 100, 20, 'moving'));
-        this.platforms.push(new Platform(1250, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1450, 480, 80, 20, 'normal'));
-        this.platforms.push(new Platform(1600, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(1800, 480, 100, 20, 'moving'));
-        this.platforms.push(new Platform(2000, 450, 120, 20, 'normal'));
-        this.platforms.push(new Platform(2200, 480, 100, 20, 'normal'));
-        this.platforms.push(new Platform(2350, 450, 150, 20, 'normal'));
-        this.platforms.push(new Platform(2600, 480, 100, 20, 'moving'));
-        this.platforms.push(new Platform(2800, 450, 150, 20, 'normal'));
-        this.platforms.push(new Platform(3050, 450, 200, 20, 'normal'));
+        
+        // Escalera final: progresiva con desafios
+        this.platforms.push(new Platform(200, 480, 120, 20, 'normal'));
+        this.platforms.push(new Platform(450, 390, 100, 20, 'moving'));
+        this.platforms.push(new Platform(700, 460, 120, 20, 'normal'));
+        this.platforms.push(new Platform(950, 340, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1200, 420, 120, 20, 'moving'));
+        this.platforms.push(new Platform(1450, 300, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1700, 380, 120, 20, 'normal'));
+        this.platforms.push(new Platform(1950, 280, 100, 20, 'moving'));
+        this.platforms.push(new Platform(2200, 360, 120, 20, 'normal'));
+        this.platforms.push(new Platform(2450, 240, 100, 20, 'normal'));
+        this.platforms.push(new Platform(2700, 320, 120, 20, 'moving'));
+        this.platforms.push(new Platform(2950, 200, 150, 20, 'normal'));
+        this.platforms.push(new Platform(3100, 280, 200, 20, 'normal'));
+        
+        // Protección bajo trampas
+        this.platforms.push(new Platform(900, 450, 100, 20, 'normal'));
+        this.platforms.push(new Platform(1400, 450, 100, 20, 'normal'));
+        this.platforms.push(new Platform(2150, 450, 100, 20, 'normal'));
 
-        // Múltiples trampas de fuego - en posiciones bajas
-        this.fireTraps.push(new FireTrap(700, 400));
-        this.fireTraps.push(new FireTrap(1450, 400));
-        this.fireTraps.push(new FireTrap(2200, 400));
+        // Trampas de fuego al final - protegidas
+        this.fireTraps.push(new FireTrap(950, 280));
+        this.fireTraps.push(new FireTrap(1450, 250));
+        this.fireTraps.push(new FireTrap(2200, 300));
 
+        // Monedas bien distribuidas
+        let coinPositions = [
+            [200, 450], [450, 360], [700, 430], [950, 310], [1200, 390],
+            [1450, 270], [1700, 350], [1950, 250], [2200, 330], [2450, 210],
+            [2700, 290], [2950, 170], [3100, 250], [3200, 250], [3000, 250],
+            [255, 450], [500, 360], [750, 430], [1100, 310], [1350, 390]
+        ];
         for (let i = 0; i < 20; i++) {
-            this.coins.push(new Coin(200 + i * 190, 420, i % 2 === 0));
+            if (coinPositions[i]) {
+                this.coins.push(new Coin(coinPositions[i][0], coinPositions[i][1], i % 2 === 0));
+            }
         }
 
-        this.powerups.push(new PowerUp(500, 420, 'shield'));
-        this.powerups.push(new PowerUp(1250, 420, 'speed'));
-        this.powerups.push(new PowerUp(2000, 420, 'health'));
-        this.powerups.push(new PowerUp(2800, 420, 'shield'));
+        // Power-ups estratégicos
+        this.powerups.push(new PowerUp(700, 430, 'shield'));
+        this.powerups.push(new PowerUp(1450, 270, 'speed'));
+        this.powerups.push(new PowerUp(2450, 210, 'health'));
+        this.powerups.push(new PowerUp(2950, 170, 'shield'));
 
-        for (let i = 0; i < 8; i++) {
-            this.enemies.push(new Enemy(300 + i * 350, 420, 'normal'));
-        }
+        // Enemigos en nivel jugable - distribuidos
+        this.enemies.push(new Enemy(300, 450, 'normal'));
+        this.enemies.push(new Enemy(650, 430, 'normal'));
+        this.enemies.push(new Enemy(1000, 310, 'normal'));
+        this.enemies.push(new Enemy(1350, 390, 'fast'));
+        this.enemies.push(new Enemy(1700, 350, 'normal'));
+        this.enemies.push(new Enemy(2100, 450, 'fast'));
+        this.enemies.push(new Enemy(2550, 210, 'fast'));
+        this.enemies.push(new Enemy(2900, 450, 'normal'));
 
         this.goalX = 3100;
-        this.goalY = 450;
+        this.goalY = 240;
     }
 
     update() {
@@ -982,28 +1046,34 @@ class Game {
     }
 
     draw() {
-        this.level.draw(ctx);
-        this.player.draw(ctx, this.cameraX);
-        this.drawHUD();
+        if (this.state === 'menu') {
+            this.drawMenu();
+        } else if (this.state === 'playing' || this.state === 'levelComplete' || this.state === 'ending' || this.state === 'gameOver') {
+            this.level.draw(ctx);
+            this.player.draw(ctx, this.cameraX);
+            this.drawHUD();
 
-        if (this.messageTimer > 0) {
-            this.messageTimer--;
-            if (this.state === 'levelComplete') {
-                this.drawMessage('✓ ¡NIVEL COMPLETO!', '#FFD700');
-                if (this.messageTimer === 0) {
-                    this.loadLevel(this.currentLevel + 1);
-                    this.state = 'playing';
+            if (this.messageTimer > 0) {
+                this.messageTimer--;
+                if (this.state === 'levelComplete') {
+                    this.drawMessage('✓ ¡NIVEL COMPLETO!', '#FFD700');
+                    if (this.messageTimer === 0) {
+                        this.loadLevel(this.currentLevel + 1);
+                        this.state = 'playing';
+                    }
+                } else if (this.state === 'ending') {
+                    this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
+                    if (this.messageTimer === 0) this.state = 'gameOver';
+                } else if (this.state === 'gameOver') {
+                    this.drawGameOver();
                 }
-            } else if (this.state === 'ending') {
-                this.drawMessage('🎉 ¡GANASTE! 💜', '#FF1493');
-                if (this.messageTimer === 0) this.state = 'gameOver';
-            } else if (this.state === 'gameOver') {
-                this.drawMessage('💀 GAME OVER', '#FF4444');
             }
         }
     }
 
     drawHUD() {
+        if (this.state !== 'playing' && this.state !== 'levelComplete' && this.state !== 'ending') return;
+        
         const hud = document.getElementById('hud');
         let html = `<div class="hud-line"><span class="hud-label">Nivel:</span> <span class="hud-value">${this.currentLevel}/6</span></div>
                    <div class="hud-line"><span class="hud-label">Miembro:</span> <span class="hud-value">${this.level.memberName}</span></div>
@@ -1022,7 +1092,7 @@ class Game {
     }
 
     drawMessage(text, color) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         ctx.fillStyle = color;
         ctx.font = 'bold 60px Arial';
@@ -1030,6 +1100,66 @@ class Game {
         ctx.shadowColor = '#000';
         ctx.shadowBlur = 10;
         ctx.fillText(text, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    }
+
+    drawMenu() {
+        ctx.fillStyle = '#0d1b2a';
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        
+        // Título
+        ctx.fillStyle = '#FF1493';
+        ctx.font = 'bold 80px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('BTS GAME', SCREEN_WIDTH / 2, 120);
+        
+        // Subtítulo
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '30px Arial';
+        ctx.fillText('Acompaña a Alexandra en su aventura', SCREEN_WIDTH / 2, 170);
+        
+        // Descripción
+        ctx.fillStyle = '#FFF';
+        ctx.font = '20px Arial';
+        ctx.fillText('Recoge monedas • Evita enemigos • Llega a la meta', SCREEN_WIDTH / 2, 220);
+        
+        // Botón Play
+        const playButtonY = 350;
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(SCREEN_WIDTH / 2 - 100, playButtonY, 200, 60);
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 30px Arial';
+        ctx.fillText('PLAY', SCREEN_WIDTH / 2, playButtonY + 42);
+        
+        // Instrucciones
+        ctx.fillStyle = '#AAA';
+        ctx.font = '16px Arial';
+        ctx.fillText('Flechas/WASD para movimiento • Espacio para saltar', SCREEN_WIDTH / 2, 500);
+        ctx.fillText('ESC para recargar', SCREEN_WIDTH / 2, 530);
+    }
+
+    drawGameOver() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        
+        // Título
+        ctx.fillStyle = '#FF4444';
+        ctx.font = 'bold 80px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', SCREEN_WIDTH / 2, 150);
+        
+        // Puntuación
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '40px Arial';
+        ctx.fillText(`Puntuación: ${this.score}`, SCREEN_WIDTH / 2, 250);
+        ctx.fillText(`Mejor: ${this.bestScore}`, SCREEN_WIDTH / 2, 310);
+        
+        // Botón Retry
+        const retryButtonY = 400;
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(SCREEN_WIDTH / 2 - 100, retryButtonY, 200, 60);
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 30px Arial';
+        ctx.fillText('REINTENTAR', SCREEN_WIDTH / 2, retryButtonY + 42);
     }
 
     loadBestScore() {
@@ -1042,7 +1172,44 @@ class Game {
             localStorage.setItem('btsGameBest', this.bestScore);
         }
     }
+
+    retry() {
+        this.state = 'menu';
+        this.currentLevel = 1;
+        this.score = 0;
+        this.level = null;
+        this.player = null;
+        this.messageTimer = 0;
+        this.cameraX = 0;
+        document.getElementById('hud').innerHTML = '';
+    }
+
+    startGame() {
+        this.state = 'playing';
+        this.loadLevel(this.currentLevel);
+    }
 }
+
+// ============================================
+// MANEJADOR DE CLICKS
+// ============================================
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (game.state === 'menu') {
+        // Botón Play: x entre 450-550, y entre 350-410
+        if (x >= SCREEN_WIDTH / 2 - 100 && x <= SCREEN_WIDTH / 2 + 100 && y >= 350 && y <= 410) {
+            game.startGame();
+        }
+    } else if (game.state === 'gameOver') {
+        // Botón Retry: x entre 450-550, y entre 400-460
+        if (x >= SCREEN_WIDTH / 2 - 100 && x <= SCREEN_WIDTH / 2 + 100 && y >= 400 && y <= 460) {
+            game.retry();
+        }
+    }
+});
 
 // ============================================
 // EVENT LISTENERS
