@@ -63,10 +63,12 @@ class TiledSpriteManager {
         const candidates = [
             {
                 speed: 0.05,
-                alpha: 0.55,
+                alpha: 0.9,
                 scale: 5,
-                yOffset: 210,
+                yOffset: 40,
                 srcPad: 1,
+                cropTop: 14,
+                filter: 'saturate(1.25) contrast(1.2) brightness(1.08)',
                 paths: [
                     'tilemap-backgrounds.png',
                     './Tilemap/tilemap-backgrounds.png',
@@ -75,10 +77,12 @@ class TiledSpriteManager {
             },
             {
                 speed: 0.12,
-                alpha: 0.85,
+                alpha: 1,
                 scale: 6,
-                yOffset: 145,
+                yOffset: 95,
                 srcPad: 1,
+                cropTop: 10,
+                filter: 'saturate(1.35) contrast(1.3) brightness(1.1)',
                 paths: [
                     'tilemap-backgrounds_packed.png',
                     './Tilemap/tilemap-backgrounds_packed.png',
@@ -97,12 +101,15 @@ class TiledSpriteManager {
                     alpha: layer.alpha,
                     scale: layer.scale,
                     yOffset: layer.yOffset,
-                    srcPad: layer.srcPad || 0
+                    srcPad: layer.srcPad || 0,
+                    cropTop: layer.cropTop || 0,
+                    filter: layer.filter || 'none'
                 };
             })
         );
 
         this.backgroundLayers = loaded.filter(Boolean);
+        console.log(`[Background] Capas cargadas: ${this.backgroundLayers.length}`);
     }
 
     async loadTileset(key, config) {
@@ -269,8 +276,9 @@ class TiledSpriteManager {
             if (!source?.width || !source?.height) continue;
 
             const srcPad = Math.max(0, Math.min(layer.srcPad || 0, 2));
+            const cropTop = Math.max(0, Math.min(layer.cropTop || 0, source.height - 2));
             const srcW = Math.max(1, source.width - srcPad * 2);
-            const srcH = Math.max(1, source.height - srcPad * 2);
+            const srcH = Math.max(1, source.height - srcPad * 2 - cropTop);
             const scale = layer.scale || 3;
             const drawW = srcW * scale;
             const drawH = srcH * scale;
@@ -281,13 +289,14 @@ class TiledSpriteManager {
             ctx.save();
             ctx.globalAlpha = layer.alpha;
             ctx.imageSmoothingEnabled = false;
+            ctx.filter = layer.filter || 'none';
 
             for (let x = offsetX - drawW; x < SCREEN_WIDTH + drawW; x += drawW) {
                 const drawX = Math.round(x);
                 ctx.drawImage(
                     source,
                     srcPad,
-                    srcPad,
+                    srcPad + cropTop,
                     srcW,
                     srcH,
                     drawX,
