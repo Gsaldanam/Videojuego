@@ -68,8 +68,8 @@ class TiledSpriteManager {
                 yOffset: 40,
                 srcPad: 1,
                 cropTop: 14,
-                cropLeftRatio: 0.34,
-                cropWidthRatio: 0.32,
+                cropLeftRatio: 0.58,
+                cropWidthRatio: 0.2,
                 filter: 'saturate(1.2) contrast(1.18) brightness(1.02)',
                 paths: [
                     'tilemap-backgrounds.png',
@@ -84,8 +84,8 @@ class TiledSpriteManager {
                 yOffset: 95,
                 srcPad: 1,
                 cropTop: 10,
-                cropLeftRatio: 0.67,
-                cropWidthRatio: 0.31,
+                cropLeftRatio: 0.78,
+                cropWidthRatio: 0.2,
                 filter: 'saturate(1.28) contrast(1.24) brightness(1.04)',
                 paths: [
                     'tilemap-backgrounds_packed.png',
