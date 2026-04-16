@@ -858,7 +858,7 @@ class CannonShot {
     }
 
     update(cameraX) {
-        this.x -= this.speed * 0.8;
+        this.x -= this.speed * 0.68;
         if (this.x + this.width < cameraX - 60) {
             this.reset(cameraX);
         }
@@ -1706,6 +1706,21 @@ class Level {
 
     generateLevelRM() {
         this.platforms.push(new Platform(0, 550, 7600, 50, 'normal'));
+        this.platforms.push(new Platform(220, 490, 160, 20, 'normal'));
+        this.platforms.push(new Platform(520, 430, 160, 20, 'normal'));
+        this.platforms.push(new Platform(860, 380, 170, 20, 'normal'));
+        this.platforms.push(new Platform(1220, 330, 180, 20, 'normal'));
+        this.platforms.push(new Platform(1600, 290, 180, 20, 'normal'));
+        this.platforms.push(new Platform(1980, 320, 180, 20, 'normal'));
+        this.platforms.push(new Platform(2360, 280, 190, 20, 'normal'));
+        this.platforms.push(new Platform(2750, 250, 200, 20, 'normal'));
+        this.platforms.push(new Platform(3170, 290, 190, 20, 'normal'));
+        this.platforms.push(new Platform(3590, 240, 190, 20, 'normal'));
+        this.platforms.push(new Platform(4030, 280, 180, 20, 'normal'));
+        this.platforms.push(new Platform(4480, 230, 180, 20, 'normal'));
+        this.platforms.push(new Platform(4950, 270, 180, 20, 'normal'));
+        this.platforms.push(new Platform(5430, 220, 190, 20, 'normal'));
+        this.platforms.push(new Platform(5900, 260, 180, 20, 'normal'));
         this.platforms.push(new Platform(240, 470, 130, 20, 'moving'));
         this.platforms.push(new Platform(520, 410, 120, 20, 'normal'));
         this.platforms.push(new Platform(820, 350, 120, 20, 'moving'));
