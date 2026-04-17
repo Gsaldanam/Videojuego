@@ -1746,8 +1746,10 @@ class Level {
         this.platforms.push(new Platform(3430, 330, 150, 20, 'normal'));
         this.platforms.push(new Platform(3890, 220, 160, 20, 'normal'));
         this.platforms.push(new Platform(4350, 300, 150, 20, 'moving'));
+        this.platforms.push(new Platform(4580, 260, 170, 20, 'normal'));
         this.platforms.push(new Platform(4820, 210, 170, 20, 'normal'));
         this.platforms.push(new Platform(5330, 300, 170, 20, 'moving'));
+        this.platforms.push(new Platform(5600, 245, 170, 20, 'normal'));
         this.platforms.push(new Platform(5850, 200, 190, 20, 'normal'));
 
         this.fireTraps.push(new FireTrap(1280, 500, { segmentCount: 6, segmentSpacing: 20, fireSize: 15, arms: 1, rotationSpeed: 0.07 }));
@@ -1899,8 +1901,9 @@ class Level {
 // ============================================
 class Game {
     constructor() {
-        this.state = 'menu';
         this.mode = 'normal';
+        this.playerName = this.loadPlayerName();
+        this.state = this.playerName ? 'menu' : 'nameEntry';
         this.currentLevel = 1;
         this.level = null;
         this.player = null;
@@ -1920,14 +1923,28 @@ class Game {
         this.supabaseAnonKey = (window.BTS_SUPABASE_ANON_KEY || '').trim();
         this.supabaseClient = this.createSupabaseClient();
         this.remoteLeaderboardApi = (window.BTS_LEADERBOARD_API || '').trim();
+        this.leaderboards = { normal: [], infinito: [] };
+        this.clearLegacyLocalLeaderboardCache();
+    }
+
+    clearLegacyLocalLeaderboardCache() {
+        localStorage.removeItem('btsGameLeaderboard');
+        localStorage.removeItem('btsGameLeaderboardInfinite');
+        localStorage.removeItem('btsGameBest');
     }
 
     createSupabaseClient() {
         if (!this.supabaseUrl || !this.supabaseAnonKey) return null;
         if (!window.supabase || typeof window.supabase.createClient !== 'function') return null;
 
+        let normalizedUrl = this.supabaseUrl.trim();
+        if (!/^https?:\/\//i.test(normalizedUrl)) {
+            normalizedUrl = `https://${normalizedUrl}`;
+        }
+        normalizedUrl = normalizedUrl.replace('supabase.com', 'supabase.co').replace(/\/+$/, '');
+
         try {
-            return window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
+            return window.supabase.createClient(normalizedUrl, this.supabaseAnonKey);
         } catch {
             return null;
         }
@@ -1965,7 +1982,7 @@ class Game {
         this.state = nextState;
 
         if (nextState === 'gameOver' && this.mode === 'infinito' && this.score > 0) {
-            this.saveLeaderboardScore('Jugador', { mode: 'infinito', levelReached: this.currentLevel });
+            this.saveLeaderboardScore(this.playerName || 'Jugador', { mode: 'infinito', levelReached: this.currentLevel });
         }
 
         this.syncOverlays();
@@ -2261,6 +2278,7 @@ class Game {
         }
 
         const loadingOverlay = document.getElementById('loadingOverlay');
+        const nameOverlay = document.getElementById('nameOverlay');
         const menuOverlay = document.getElementById('menuOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const victoryOverlay = document.getElementById('victoryOverlay');
@@ -2269,10 +2287,12 @@ class Game {
         const gameOverScore = document.getElementById('gameOverScore');
         const victoryScore = document.getElementById('victoryScore');
         const volumeButton = document.getElementById('volumeButton');
+        const winnerNameInput = document.getElementById('winnerNameInput');
 
-        if (!menuOverlay || !gameOverOverlay || !victoryOverlay || !pauseOverlay || !levelCompleteOverlay) return;
+        if (!nameOverlay || !menuOverlay || !gameOverOverlay || !victoryOverlay || !pauseOverlay || !levelCompleteOverlay) return;
 
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
+        nameOverlay.classList.toggle('hidden', this.state !== 'nameEntry');
         menuOverlay.classList.toggle('hidden', this.state !== 'menu');
         gameOverOverlay.classList.toggle('hidden', this.state !== 'gameOver');
         victoryOverlay.classList.toggle('hidden', this.state !== 'victory');
@@ -2282,6 +2302,7 @@ class Game {
         if (gameOverScore) gameOverScore.textContent = `Puntuación: ${this.score}`;
         if (victoryScore) victoryScore.textContent = `Puntuación final: ${this.score}`;
         if (volumeButton) volumeButton.textContent = `VOLUMEN: ${Math.round(this.volume * 100)}%`;
+        if (winnerNameInput && this.playerName) winnerNameInput.value = this.playerName;
 
         this.lastOverlayState = overlayState;
         this.lastOverlayScore = this.score;
@@ -2292,6 +2313,18 @@ class Game {
         const saved = localStorage.getItem('btsGameVolume');
         const parsed = saved !== null ? parseFloat(saved) : 1;
         return Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : 1;
+    }
+
+    loadPlayerName() {
+        const saved = localStorage.getItem('btsGamePlayerName');
+        return saved ? saved.toString().trim().slice(0, 20) : '';
+    }
+
+    savePlayerName(name) {
+        const clean = (name || '').toString().trim().slice(0, 20);
+        this.playerName = clean;
+        if (clean) localStorage.setItem('btsGamePlayerName', clean);
+        else localStorage.removeItem('btsGamePlayerName');
     }
 
     saveVolume() {
@@ -2328,20 +2361,11 @@ class Game {
     }
 
     loadBestScore() {
-        const raw = localStorage.getItem('btsGameBest');
-        const parsed = raw ? parseInt(raw, 10) : 0;
-        return Number.isFinite(parsed) ? parsed : 0;
+        return 0;
     }
 
     saveBestScore() {
-        if (this.score > this.bestScore) {
-            this.bestScore = this.score;
-            localStorage.setItem('btsGameBest', this.bestScore);
-        }
-    }
-
-    getLeaderboardStorageKey(mode = 'normal') {
-        return mode === 'infinito' ? 'btsGameLeaderboardInfinite' : 'btsGameLeaderboard';
+        if (this.score > this.bestScore) this.bestScore = this.score;
     }
 
     normalizeLeaderboardEntry(entry, mode = 'normal') {
@@ -2393,30 +2417,11 @@ class Game {
     }
 
     loadLeaderboard(mode = 'normal') {
-        try {
-            const data = localStorage.getItem(this.getLeaderboardStorageKey(mode));
-            const parsed = data ? JSON.parse(data) : [];
-            return this.normalizeLeaderboard(parsed, mode);
-        } catch {
-            return [];
-        }
+        return this.leaderboards[mode] ? [...this.leaderboards[mode]] : [];
     }
 
     saveLeaderboardLocal(mode = 'normal', list = []) {
-        localStorage.setItem(this.getLeaderboardStorageKey(mode), JSON.stringify(this.normalizeLeaderboard(list, mode)));
-    }
-
-    async loadSharedLeaderboardFile() {
-        try {
-            const response = await fetch('scores.json', { cache: 'no-store' });
-            if (!response.ok) return { normal: [], infinito: [] };
-            const data = await response.json();
-            const normal = Array.isArray(data?.leaderboards?.normal) ? data.leaderboards.normal : [];
-            const infinito = Array.isArray(data?.leaderboards?.infinito) ? data.leaderboards.infinito : [];
-            return { normal, infinito };
-        } catch {
-            return { normal: [], infinito: [] };
-        }
+        this.leaderboards[mode] = this.normalizeLeaderboard(list, mode);
     }
 
     async loadRemoteLeaderboards() {
@@ -2450,7 +2455,12 @@ class Game {
                 .order('created_at', { ascending: true })
                 .limit(200);
 
-            if (error || !Array.isArray(data)) return { normal: [], infinito: [] };
+            if (error) {
+                console.warn('[Supabase] Error cargando leaderboard:', error.message || error);
+                return { normal: [], infinito: [] };
+            }
+
+            if (!Array.isArray(data)) return { normal: [], infinito: [] };
 
             const mapped = data.map((row) => ({
                 name: row.name,
@@ -2499,34 +2509,22 @@ class Game {
                     : null
             };
 
-            await this.supabaseClient.from('leaderboard_scores').insert(payload);
-        } catch {
-            // fallback silencioso
+            const { error } = await this.supabaseClient.from('leaderboard_scores').insert(payload);
+            if (error) {
+                console.warn('[Supabase] Error guardando score:', error.message || error, payload);
+            } else {
+                console.log('[Supabase] Score guardado:', payload);
+            }
+        } catch (err) {
+            console.warn('[Supabase] Excepción guardando score:', err);
         }
     }
 
     async refreshLeaderboards() {
-        const localNormal = this.loadLeaderboard('normal');
-        const localInfinite = this.loadLeaderboard('infinito');
+        const remote = await this.loadRemoteLeaderboards();
 
-        const [sharedFile, remote] = await Promise.all([
-            this.loadSharedLeaderboardFile(),
-            this.loadRemoteLeaderboards()
-        ]);
-
-        const mergedNormal = this.mergeLeaderboards(
-            this.mergeLeaderboards(localNormal, sharedFile.normal, 'normal'),
-            remote.normal,
-            'normal'
-        );
-        const mergedInfinite = this.mergeLeaderboards(
-            this.mergeLeaderboards(localInfinite, sharedFile.infinito, 'infinito'),
-            remote.infinito,
-            'infinito'
-        );
-
-        this.saveLeaderboardLocal('normal', mergedNormal);
-        this.saveLeaderboardLocal('infinito', mergedInfinite);
+        this.saveLeaderboardLocal('normal', this.normalizeLeaderboard(remote.normal, 'normal'));
+        this.saveLeaderboardLocal('infinito', this.normalizeLeaderboard(remote.infinito, 'infinito'));
         this.renderLeaderboards();
     }
 
@@ -2560,15 +2558,22 @@ class Game {
             return;
         }
 
-        board.innerHTML = list.map((entry, index) => `
-            <div class="leaderboard-item ${index === 0 ? 'top' : ''}">
+        board.innerHTML = list.map((entry, index) => {
+            const dateText = (entry.date || '').toString();
+            const compactDate = mode === 'infinito'
+                ? dateText.split('/').slice(0, 2).join('/')
+                : dateText;
+
+            return `
+            <div class="leaderboard-item ${mode === 'infinito' ? 'infinite' : ''} ${index === 0 ? 'top' : ''}">
                 <span class="leaderboard-rank">${index + 1}.</span>
                 <span class="leaderboard-name">${entry.name || 'Jugador'}</span>
                 <span class="leaderboard-score">${entry.score}</span>
                 ${mode === 'infinito' ? `<span class="leaderboard-level">Nvl ${entry.levelReached || 1}</span>` : ''}
-                <span class="leaderboard-date">${entry.date}</span>
+                <span class="leaderboard-date">${compactDate}</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     renderLeaderboards() {
@@ -2581,16 +2586,25 @@ class Game {
         const historicalBest = normalList.length ? Math.max(...normalList.map(entry => Number(entry.score) || 0)) : 0;
         if (historicalBest > this.bestScore) {
             this.bestScore = historicalBest;
-            localStorage.setItem('btsGameBest', String(this.bestScore));
         }
     }
 
     submitWinnerName() {
+        if (this.state === 'nameEntry') {
+            const nameInput = document.getElementById('nameEntryInput');
+            const name = (nameInput ? nameInput.value : '').trim();
+            if (!name) return;
+            this.savePlayerName(name);
+            this.setState('menu');
+            return;
+        }
+
         if (this.state !== 'victory') return;
         const input = document.getElementById('winnerNameInput');
-        const name = input ? input.value : '';
+        const name = (input ? input.value : '').trim() || this.playerName || 'Jugador';
+        this.savePlayerName(name);
         this.saveLeaderboardScore(name, { mode: this.mode, levelReached: this.currentLevel });
-        if (input) input.value = '';
+        if (input) input.value = this.playerName || '';
         this.setState('menu');
         this.currentLevel = 1;
         this.score = 0;
@@ -2618,6 +2632,10 @@ class Game {
     }
 
     startGame() {
+        if (!this.playerName) {
+            this.setState('nameEntry');
+            return;
+        }
         this.setState('playing');
         this.loadLevel(this.currentLevel);
         this.syncOverlays();
@@ -2726,6 +2744,8 @@ function gameLoop(timestamp = 0) {
 window.addEventListener('load', () => {
     spriteManager = new TiledSpriteManager();
     game = new Game();
+    const nameEntryInput = document.getElementById('nameEntryInput');
+    const saveNameButton = document.getElementById('saveNameButton');
     const playButton = document.getElementById('playButton');
     const modeNormal = document.getElementById('modeNormal');
     const modeHardcore = document.getElementById('modeHardcore');
@@ -2738,6 +2758,7 @@ window.addEventListener('load', () => {
     const volumeButton = document.getElementById('volumeButton');
     const modeButton = document.getElementById('modeButton');
 
+    if (saveNameButton) saveNameButton.addEventListener('click', () => game.submitWinnerName());
     if (playButton) playButton.addEventListener('click', () => game.startGame());
     if (modeNormal) modeNormal.addEventListener('click', () => game.setMode('normal'));
     if (modeHardcore) modeHardcore.addEventListener('click', () => game.setMode('hardcore'));
@@ -2749,7 +2770,15 @@ window.addEventListener('load', () => {
     if (volumeButton) volumeButton.addEventListener('click', () => game.toggleVolume());
     if (modeButton) modeButton.addEventListener('click', () => game.showModePreview());
     if (winnerNameInput) {
+        if (game.playerName) winnerNameInput.value = game.playerName;
         winnerNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') game.submitWinnerName();
+        });
+    }
+
+    if (nameEntryInput) {
+        if (game.playerName) nameEntryInput.value = game.playerName;
+        nameEntryInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') game.submitWinnerName();
         });
     }

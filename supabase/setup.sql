@@ -15,6 +15,10 @@ create index if not exists leaderboard_scores_mode_score_idx
 
 alter table public.leaderboard_scores enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert on table public.leaderboard_scores to anon, authenticated;
+grant usage, select on sequence public.leaderboard_scores_id_seq to anon, authenticated;
+
 -- Lectura pública para cualquiera que entre al link
 drop policy if exists "public read leaderboard"
 on public.leaderboard_scores;

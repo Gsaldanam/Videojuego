@@ -297,6 +297,11 @@
             font-size: 0.92em;
         }
 
+        .leaderboard-item.infinite {
+            gap: 6px;
+            font-size: 0.84em;
+        }
+
         .leaderboard-item.top {
             background: rgba(255, 215, 0, 0.12);
             border-radius: 8px;
@@ -315,6 +320,10 @@
             text-align: right;
         }
 
+        .leaderboard-item.infinite .leaderboard-score {
+            min-width: 44px;
+        }
+
         .leaderboard-name {
             flex: 1;
             overflow: hidden;
@@ -330,12 +339,21 @@
             font-size: 0.8em;
         }
 
+        .leaderboard-item.infinite .leaderboard-date {
+            width: 44px;
+            font-size: 0.74em;
+        }
+
         .leaderboard-level {
             min-width: 52px;
             text-align: right;
             color: #8df3ff;
             font-weight: bold;
             font-size: 0.78em;
+        }
+
+        .leaderboard-item.infinite .leaderboard-level {
+            min-width: 42px;
         }
 
         .leaderboard-empty {
@@ -460,6 +478,13 @@
                 <div class="hud-line"><span class="hud-label">Velocidad:</span> <span class="hud-value" id="hudSpeed">Normal</span></div>
             </div>
 
+            <div id="nameOverlay" class="overlay hidden">
+                <div class="menu-mode-title">¿Cuál es tu nombre?</div>
+                <div class="menu-mode-desc">Lo usaremos para registrar tu puntuación en el leaderboard</div>
+                <input id="nameEntryInput" class="overlay-input" type="text" maxlength="20" placeholder="Escribe tu nombre" />
+                <button id="saveNameButton" class="overlay-button">CONTINUAR</button>
+            </div>
+
             <div id="menuOverlay" class="overlay hidden">
                 <div class="menu-mode-title">Selecciona modo de juego</div>
                 <div class="menu-modes">
@@ -539,7 +564,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        window.BTS_SUPABASE_URL = 'https://ixthxznruugbzjyxoasd.supabase.com';
+        window.BTS_SUPABASE_URL = 'https://ixthxznruugbzjyxoasd.supabase.co';
         window.BTS_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4dGh4em5ydXVnYnpqeXhvYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzU0NzksImV4cCI6MjA5MTk1MTQ3OX0.eY8AxMoXOiIIW_6zEwhX9SGKX_hSYQgWS52_PtWlaNc';
         window.BTS_LEADERBOARD_API = '';
     </script>
