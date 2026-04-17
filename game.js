@@ -2787,5 +2787,16 @@ window.addEventListener('load', () => {
 
     game.syncOverlays();
     game.refreshLeaderboards();
+
+    setInterval(() => {
+        game.refreshLeaderboards();
+    }, 12000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            game.refreshLeaderboards();
+        }
+    });
+
     requestAnimationFrame(gameLoop);
 });
