@@ -1,1 +1,13 @@
-{"best_score": 80}
+{
+	"best_score": 80,
+	"leaderboards": {
+		"normal": [
+			{
+				"name": "Alexandra",
+				"score": 80,
+				"date": "16/4/2026"
+			}
+		],
+		"infinito": []
+	}
+}

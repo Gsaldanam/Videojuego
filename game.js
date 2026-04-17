@@ -1916,6 +1916,21 @@ class Game {
         this.lastOverlayVolume = -1;
         this.lastHudKey = '';
         this.hudFrameThrottle = 0;
+        this.supabaseUrl = (window.BTS_SUPABASE_URL || '').trim();
+        this.supabaseAnonKey = (window.BTS_SUPABASE_ANON_KEY || '').trim();
+        this.supabaseClient = this.createSupabaseClient();
+        this.remoteLeaderboardApi = (window.BTS_LEADERBOARD_API || '').trim();
+    }
+
+    createSupabaseClient() {
+        if (!this.supabaseUrl || !this.supabaseAnonKey) return null;
+        if (!window.supabase || typeof window.supabase.createClient !== 'function') return null;
+
+        try {
+            return window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
+        } catch {
+            return null;
+        }
     }
 
     setMode(mode) {
@@ -1948,6 +1963,11 @@ class Game {
     setState(nextState) {
         if (this.state === nextState) return;
         this.state = nextState;
+
+        if (nextState === 'gameOver' && this.mode === 'infinito' && this.score > 0) {
+            this.saveLeaderboardScore('Jugador', { mode: 'infinito', levelReached: this.currentLevel });
+        }
+
         this.syncOverlays();
     }
 
@@ -2308,7 +2328,9 @@ class Game {
     }
 
     loadBestScore() {
-        return localStorage.getItem('btsGameBest') ? parseInt(localStorage.getItem('btsGameBest')) : 0;
+        const raw = localStorage.getItem('btsGameBest');
+        const parsed = raw ? parseInt(raw, 10) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     saveBestScore() {
@@ -2318,27 +2340,219 @@ class Game {
         }
     }
 
-    loadLeaderboard() {
+    getLeaderboardStorageKey(mode = 'normal') {
+        return mode === 'infinito' ? 'btsGameLeaderboardInfinite' : 'btsGameLeaderboard';
+    }
+
+    normalizeLeaderboardEntry(entry, mode = 'normal') {
+        if (!entry || typeof entry !== 'object') return null;
+
+        const safeName = (entry.name || 'Jugador').toString().trim().slice(0, 20) || 'Jugador';
+        const safeScore = Number.isFinite(Number(entry.score)) ? Number(entry.score) : 0;
+        const safeDate = (entry.date || new Date().toLocaleDateString('es-ES')).toString();
+
+        if (mode === 'infinito') {
+            const safeLevel = Number.isFinite(Number(entry.levelReached)) ? Math.max(1, Number(entry.levelReached)) : 1;
+            return { name: safeName, score: safeScore, levelReached: safeLevel, date: safeDate };
+        }
+
+        return { name: safeName, score: safeScore, date: safeDate };
+    }
+
+    normalizeLeaderboard(entries, mode = 'normal') {
+        const cleaned = (entries || [])
+            .map(entry => this.normalizeLeaderboardEntry(entry, mode))
+            .filter(Boolean);
+
+        cleaned.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (mode === 'infinito') {
+                const levelDiff = (b.levelReached || 0) - (a.levelReached || 0);
+                if (levelDiff !== 0) return levelDiff;
+            }
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        return cleaned.slice(0, 5);
+    }
+
+    mergeLeaderboards(primary, secondary, mode = 'normal') {
+        const combined = [...(primary || []), ...(secondary || [])];
+        const uniqueMap = new Map();
+
+        for (const entry of combined) {
+            const normalized = this.normalizeLeaderboardEntry(entry, mode);
+            if (!normalized) continue;
+            const key = mode === 'infinito'
+                ? `${normalized.name}|${normalized.score}|${normalized.levelReached}|${normalized.date}`
+                : `${normalized.name}|${normalized.score}|${normalized.date}`;
+            uniqueMap.set(key, normalized);
+        }
+
+        return this.normalizeLeaderboard([...uniqueMap.values()], mode);
+    }
+
+    loadLeaderboard(mode = 'normal') {
         try {
-            const data = localStorage.getItem('btsGameLeaderboard');
-            return data ? JSON.parse(data) : [];
+            const data = localStorage.getItem(this.getLeaderboardStorageKey(mode));
+            const parsed = data ? JSON.parse(data) : [];
+            return this.normalizeLeaderboard(parsed, mode);
         } catch {
             return [];
         }
     }
 
-    saveLeaderboardScore(name) {
-        const leaderboard = this.loadLeaderboard();
-        const cleanName = (name || '').trim().slice(0, 20) || 'Jugador';
-        leaderboard.push({ name: cleanName, score: this.score, date: new Date().toLocaleDateString('es-ES') });
-        leaderboard.sort((a, b) => b.score - a.score);
-        const top = leaderboard.slice(0, 5);
-        localStorage.setItem('btsGameLeaderboard', JSON.stringify(top));
-        this.renderLeaderboard(top);
+    saveLeaderboardLocal(mode = 'normal', list = []) {
+        localStorage.setItem(this.getLeaderboardStorageKey(mode), JSON.stringify(this.normalizeLeaderboard(list, mode)));
     }
 
-    renderLeaderboard(list = this.loadLeaderboard()) {
-        const board = document.getElementById('leaderboardList');
+    async loadSharedLeaderboardFile() {
+        try {
+            const response = await fetch('scores.json', { cache: 'no-store' });
+            if (!response.ok) return { normal: [], infinito: [] };
+            const data = await response.json();
+            const normal = Array.isArray(data?.leaderboards?.normal) ? data.leaderboards.normal : [];
+            const infinito = Array.isArray(data?.leaderboards?.infinito) ? data.leaderboards.infinito : [];
+            return { normal, infinito };
+        } catch {
+            return { normal: [], infinito: [] };
+        }
+    }
+
+    async loadRemoteLeaderboards() {
+        if (this.supabaseClient) {
+            return this.loadSupabaseLeaderboards();
+        }
+
+        if (!this.remoteLeaderboardApi) return { normal: [], infinito: [] };
+
+        try {
+            const endpoint = this.remoteLeaderboardApi.replace(/\/$/, '');
+            const response = await fetch(`${endpoint}/leaderboards`, { cache: 'no-store' });
+            if (!response.ok) return { normal: [], infinito: [] };
+            const data = await response.json();
+            return {
+                normal: Array.isArray(data?.normal) ? data.normal : [],
+                infinito: Array.isArray(data?.infinito) ? data.infinito : []
+            };
+        } catch {
+            return { normal: [], infinito: [] };
+        }
+    }
+
+    async loadSupabaseLeaderboards() {
+        try {
+            const { data, error } = await this.supabaseClient
+                .from('leaderboard_scores')
+                .select('name, score, mode, level_reached, created_at')
+                .in('mode', ['normal', 'infinito'])
+                .order('score', { ascending: false })
+                .order('created_at', { ascending: true })
+                .limit(200);
+
+            if (error || !Array.isArray(data)) return { normal: [], infinito: [] };
+
+            const mapped = data.map((row) => ({
+                name: row.name,
+                score: row.score,
+                mode: row.mode,
+                levelReached: row.level_reached,
+                date: row.created_at ? new Date(row.created_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')
+            }));
+
+            return {
+                normal: mapped.filter((entry) => entry.mode === 'normal'),
+                infinito: mapped.filter((entry) => entry.mode === 'infinito')
+            };
+        } catch {
+            return { normal: [], infinito: [] };
+        }
+    }
+
+    async pushRemoteScore(entry) {
+        if (this.supabaseClient) {
+            await this.pushSupabaseScore(entry);
+            return;
+        }
+
+        if (!this.remoteLeaderboardApi) return;
+        try {
+            const endpoint = this.remoteLeaderboardApi.replace(/\/$/, '');
+            await fetch(`${endpoint}/scores`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
+        } catch {
+            // fallback silencioso
+        }
+    }
+
+    async pushSupabaseScore(entry) {
+        try {
+            const payload = {
+                name: (entry.name || 'Jugador').toString().slice(0, 20),
+                score: Number(entry.score) || 0,
+                mode: entry.mode === 'infinito' ? 'infinito' : 'normal',
+                level_reached: entry.mode === 'infinito'
+                    ? Math.max(1, Number(entry.levelReached) || 1)
+                    : null
+            };
+
+            await this.supabaseClient.from('leaderboard_scores').insert(payload);
+        } catch {
+            // fallback silencioso
+        }
+    }
+
+    async refreshLeaderboards() {
+        const localNormal = this.loadLeaderboard('normal');
+        const localInfinite = this.loadLeaderboard('infinito');
+
+        const [sharedFile, remote] = await Promise.all([
+            this.loadSharedLeaderboardFile(),
+            this.loadRemoteLeaderboards()
+        ]);
+
+        const mergedNormal = this.mergeLeaderboards(
+            this.mergeLeaderboards(localNormal, sharedFile.normal, 'normal'),
+            remote.normal,
+            'normal'
+        );
+        const mergedInfinite = this.mergeLeaderboards(
+            this.mergeLeaderboards(localInfinite, sharedFile.infinito, 'infinito'),
+            remote.infinito,
+            'infinito'
+        );
+
+        this.saveLeaderboardLocal('normal', mergedNormal);
+        this.saveLeaderboardLocal('infinito', mergedInfinite);
+        this.renderLeaderboards();
+    }
+
+    saveLeaderboardScore(name, options = {}) {
+        const mode = options.mode || this.mode;
+        const leaderboard = this.loadLeaderboard(mode);
+        const cleanName = (name || '').trim().slice(0, 20) || 'Jugador';
+        const entry = {
+            name: cleanName,
+            score: this.score,
+            mode,
+            date: new Date().toLocaleDateString('es-ES')
+        };
+
+        if (mode === 'infinito') {
+            entry.levelReached = Number.isFinite(Number(options.levelReached)) ? Number(options.levelReached) : this.currentLevel;
+        }
+
+        const top = this.normalizeLeaderboard([...leaderboard, entry], mode);
+        this.saveLeaderboardLocal(mode, top);
+        this.renderLeaderboards();
+        this.pushRemoteScore(entry);
+    }
+
+    renderLeaderboardList(elementId, list, mode = 'normal') {
+        const board = document.getElementById(elementId);
         if (!board) return;
 
         if (!list.length) {
@@ -2351,16 +2565,31 @@ class Game {
                 <span class="leaderboard-rank">${index + 1}.</span>
                 <span class="leaderboard-name">${entry.name || 'Jugador'}</span>
                 <span class="leaderboard-score">${entry.score}</span>
+                ${mode === 'infinito' ? `<span class="leaderboard-level">Nvl ${entry.levelReached || 1}</span>` : ''}
                 <span class="leaderboard-date">${entry.date}</span>
             </div>
         `).join('');
+    }
+
+    renderLeaderboards() {
+        const normalList = this.loadLeaderboard('normal');
+        const infiniteList = this.loadLeaderboard('infinito');
+
+        this.renderLeaderboardList('leaderboardList', normalList, 'normal');
+        this.renderLeaderboardList('infiniteLeaderboardList', infiniteList, 'infinito');
+
+        const historicalBest = normalList.length ? Math.max(...normalList.map(entry => Number(entry.score) || 0)) : 0;
+        if (historicalBest > this.bestScore) {
+            this.bestScore = historicalBest;
+            localStorage.setItem('btsGameBest', String(this.bestScore));
+        }
     }
 
     submitWinnerName() {
         if (this.state !== 'victory') return;
         const input = document.getElementById('winnerNameInput');
         const name = input ? input.value : '';
-        this.saveLeaderboardScore(name);
+        this.saveLeaderboardScore(name, { mode: this.mode, levelReached: this.currentLevel });
         if (input) input.value = '';
         this.setState('menu');
         this.currentLevel = 1;
@@ -2528,6 +2757,6 @@ window.addEventListener('load', () => {
     game.setMode('normal');
 
     game.syncOverlays();
-    game.renderLeaderboard();
+    game.refreshLeaderboards();
     requestAnimationFrame(gameLoop);
 });
