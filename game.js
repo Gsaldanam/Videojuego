@@ -29,6 +29,7 @@ class TiledSpriteManager {
         this.memberPortraitSources = {};
         this.basicPointSprite = null;
         this.specialPointSprite = null;
+        this.tileGroundSprite = null;
         this.defaultTilesets = {
             tiles: {
                 tsxPath: 'tileset-tiles.tsx',
@@ -62,7 +63,8 @@ class TiledSpriteManager {
             this.loadBackgroundLayers(),
             this.loadMemberPortraits(),
             this.loadBasicPointSprite(),
-            this.loadSpecialPointSprite()
+            this.loadSpecialPointSprite(),
+            this.loadTileGroundSprite()
         ]);
     }
 
@@ -122,6 +124,66 @@ class TiledSpriteManager {
         ctx.drawImage(this.specialPointSprite, dx, dy, size, size);
         ctx.restore();
         return true;
+    }
+
+    async loadTileGroundSprite() {
+        const image = await this.loadImageWithFallbacks([
+            'assets/items/tile_0002.png',
+            './assets/items/tile_0002.png'
+        ]);
+
+        if (image) {
+            this.tileGroundSprite = image;
+            console.log('[Sprites] Bloque de tierra cargado desde assets/items/tile_0002.png');
+        } else {
+            this.tileGroundSprite = null;
+            console.warn('[Sprites] No se pudo cargar assets/items/tile_0002.png para bloques de tierra');
+        }
+    }
+
+    drawTileGround(ctx, x, y, width, height) {
+        if (!this.tileGroundSprite) return false;
+
+        const tileW = this.tileGroundSprite.width;
+        const tileH = this.tileGroundSprite.height;
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+
+        for (let py = 0; py < height; py += tileH) {
+            for (let px = 0; px < width; px += tileW) {
+                const partW = Math.min(tileW, width - px);
+                const partH = Math.min(tileH, height - py);
+                ctx.drawImage(
+                    this.tileGroundSprite,
+                    0,
+                    0,
+                    partW,
+                    partH,
+                    x + px,
+                    y + py,
+                    partW,
+                    partH
+                );
+            }
+        }
+
+        ctx.restore();
+        return true;
+    }
+
+    drawTileGroundLayers(ctx, x, y, width, height) {
+        // Dibuja 3 capas de tierra usando el tileset antiguo (PNG)
+        const spriteDrawn = spriteManager?.drawTiledRect(
+            ctx,
+            'tiles',
+            122,
+            x,
+            y,
+            width,
+            height
+        );
+        return spriteDrawn ?? false;
     }
 
     async loadMemberPortraits() {
@@ -435,57 +497,11 @@ class TiledSpriteManager {
 
     drawParallaxBackground(ctx, cameraX) {
         const gradient = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
-        gradient.addColorStop(0, '#1f3442');
-        gradient.addColorStop(0.55, '#2d4853');
-        gradient.addColorStop(1, '#415f60');
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(0.55, '#90EE90');
+        gradient.addColorStop(1, '#32CD32');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-        if (!this.backgroundLayers.length) return false;
-
-        for (const layer of this.backgroundLayers) {
-            const source = layer.image;
-            if (!source?.width || !source?.height) continue;
-
-            const srcPad = Math.max(0, Math.min(layer.srcPad || 0, 2));
-            const cropTop = Math.max(0, Math.min(layer.cropTop || 0, source.height - 2));
-            const usableW = Math.max(1, source.width - srcPad * 2);
-            const fixedSrcW = Number.isFinite(layer.fixedSrcW) ? Math.max(1, Math.min(layer.fixedSrcW, usableW)) : null;
-            const fixedSrcX = Number.isFinite(layer.fixedSrcX) ? Math.max(srcPad, Math.min(layer.fixedSrcX, source.width - 1)) : null;
-            const cropWidthRatio = Math.max(0.15, Math.min(layer.cropWidthRatio ?? 1, 1));
-            const cropLeftRatio = Math.max(0, Math.min(layer.cropLeftRatio ?? 0, 1 - cropWidthRatio));
-            const srcX = fixedSrcX ?? (srcPad + Math.floor(usableW * cropLeftRatio));
-            const srcW = fixedSrcW ?? Math.max(1, Math.floor(usableW * cropWidthRatio));
-            const srcH = Math.max(1, source.height - srcPad * 2 - cropTop);
-            const scale = layer.scale || 3;
-            const drawW = srcW * scale;
-            const drawH = srcH * scale;
-            const rawOffsetX = -((cameraX * layer.speed) % drawW);
-            const offsetX = Math.floor(rawOffsetX);
-            const y = Math.round(SCREEN_HEIGHT - drawH - (layer.yOffset || 0));
-
-            ctx.save();
-            ctx.globalAlpha = layer.alpha;
-            ctx.imageSmoothingEnabled = false;
-            ctx.filter = layer.filter || 'none';
-
-            for (let x = offsetX - drawW; x < SCREEN_WIDTH + drawW; x += drawW) {
-                const drawX = Math.round(x);
-                ctx.drawImage(
-                    source,
-                    srcX,
-                    srcPad + cropTop,
-                    srcW,
-                    srcH,
-                    drawX,
-                    y,
-                    drawW + 2,
-                    drawH
-                );
-            }
-
-            ctx.restore();
-        }
 
         return true;
     }
@@ -676,6 +692,25 @@ class Platform {
 
     draw(ctx, cameraX) {
         const x = this.x - cameraX + this.moving;
+        
+        // Dibujar bloque de tierra si es tipo 'normal'
+        if (this.type === 'normal') {
+            const tileH = spriteManager?.tileGroundSprite?.height || 18;
+            const numLayers = Math.ceil(this.height / tileH);
+            
+            // Primera capa: usar tile_0000.png
+            const layer1Height = tileH;
+            const spriteDrawn1 = spriteManager?.drawTileGround(ctx, x, this.y, this.width, Math.min(layer1Height, this.height));
+            
+            // Capas 2 y 3: usar tileset antiguo
+            if (this.height > layer1Height) {
+                const remainingHeight = this.height - layer1Height;
+                const spriteDrawn2 = spriteManager?.drawTileGroundLayers(ctx, x, this.y + layer1Height, this.width, remainingHeight);
+            }
+            
+            return;
+        }
+
         const spriteTileByType = {
             normal: 122,
             moving: 101,
@@ -2360,6 +2395,10 @@ class Game {
         }
     }
 
+    goToModeMenu() {
+        this.setState('menu');
+    }
+
     loadBestScore() {
         return 0;
     }
@@ -2768,7 +2807,7 @@ window.addEventListener('load', () => {
     if (nextLevelButton) nextLevelButton.addEventListener('click', () => game.goToNextLevel());
     if (resumeButton) resumeButton.addEventListener('click', () => game.closePauseMenu());
     if (volumeButton) volumeButton.addEventListener('click', () => game.toggleVolume());
-    if (modeButton) modeButton.addEventListener('click', () => game.showModePreview());
+    if (modeButton) modeButton.addEventListener('click', () => game.goToModeMenu());
     if (winnerNameInput) {
         if (game.playerName) winnerNameInput.value = game.playerName;
         winnerNameInput.addEventListener('keydown', (e) => {
