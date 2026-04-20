@@ -543,12 +543,22 @@
         }
 
         @media (pointer: coarse), (max-width: 760px) {
-            .touch-controls {
-                display: block;
+            .container {
+                width: 100%;
             }
 
-            .controls {
-                display: none;
+            .stage {
+                width: calc(100vw - 6px);
+                max-width: none;
+            }
+
+            canvas {
+                border-width: 2px;
+                border-radius: 8px;
+            }
+
+            .touch-controls {
+                display: block;
             }
 
             .footer {
@@ -652,15 +662,6 @@
         </div>
         
         <div id="message"></div>
-
-        <div class="controls">
-            <h3>⌨️ CONTROLES</h3>
-            <p><span class="key">←</span> <span class="key">→</span> Mover</p>
-            <p><span class="key">ESPACIO</span> Saltar</p>
-            <p><span class="key">ESC</span> Pausa / reanudar</p>
-            <p style="margin-top: 12px; font-size: 0.88em;">📱 En celular usa el touchpad (abajo izquierda) y SALTAR (abajo derecha)</p>
-            <p style="margin-top: 15px; font-size: 0.85em;">💡 Recoge monedas, evita enemigos y llega a la meta en cada nivel</p>
-        </div>
 
         <div class="footer">
             <p>🎮 Creado con mucho 💜 para Alexandra</p>
