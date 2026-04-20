@@ -2825,9 +2825,6 @@ window.addEventListener('load', () => {
     const touchJumpButton = document.getElementById('touchJumpButton');
     let touchPadPointerId = null;
 
-    const TOUCHPAD_MAX_OFFSET = 36;
-    const TOUCHPAD_DEAD_ZONE = 14;
-
     const resetTouchPadState = () => {
         touchControls.left = false;
         touchControls.right = false;
@@ -2860,17 +2857,19 @@ window.addEventListener('load', () => {
         const rect = touchPad.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const deltaX = clientX - centerX;
-        const clampedX = Math.max(-TOUCHPAD_MAX_OFFSET, Math.min(TOUCHPAD_MAX_OFFSET, deltaX));
+        const maxOffset = Math.max(28, rect.width * 0.24);
+        const deadZone = Math.max(10, rect.width * 0.1);
+        const clampedX = Math.max(-maxOffset, Math.min(maxOffset, deltaX));
 
         if (touchPadThumb) {
             touchPadThumb.style.transform = `translate(calc(-50% + ${clampedX}px), -50%)`;
         }
 
-        if (deltaX <= -TOUCHPAD_DEAD_ZONE) {
+        if (deltaX <= -deadZone) {
             touchControls.left = true;
             touchControls.right = false;
             touchPad.dataset.direction = 'left';
-        } else if (deltaX >= TOUCHPAD_DEAD_ZONE) {
+        } else if (deltaX >= deadZone) {
             touchControls.left = false;
             touchControls.right = true;
             touchPad.dataset.direction = 'right';
@@ -2883,7 +2882,6 @@ window.addEventListener('load', () => {
 
     if (touchPad) {
         const startTouchPad = (event) => {
-            event.preventDefault();
             if (touchPadPointerId !== null && touchPadPointerId !== event.pointerId) return;
 
             touchPadPointerId = event.pointerId;
@@ -2893,13 +2891,11 @@ window.addEventListener('load', () => {
 
         const moveTouchPad = (event) => {
             if (touchPadPointerId !== event.pointerId) return;
-            event.preventDefault();
             updateTouchPad(event.clientX);
         };
 
         const endTouchPad = (event) => {
             if (touchPadPointerId !== event.pointerId) return;
-            event.preventDefault();
 
             if (touchPad.hasPointerCapture(event.pointerId)) {
                 touchPad.releasePointerCapture(event.pointerId);
@@ -2931,13 +2927,11 @@ window.addEventListener('load', () => {
     const bindTouchHoldButton = (button, controlName) => {
         if (!button) return;
 
-        const press = (event) => {
-            event.preventDefault();
+        const press = () => {
             touchControls[controlName] = true;
         };
 
-        const release = (event) => {
-            event.preventDefault();
+        const release = () => {
             touchControls[controlName] = false;
         };
 
