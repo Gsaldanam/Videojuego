@@ -296,15 +296,15 @@
 
         .touch-jump {
             position: absolute;
-            right: 16px;
-            bottom: 20px;
-            min-width: 126px;
-            min-height: 78px;
-            border-radius: 20px;
+            right: 14px;
+            bottom: 14px;
+            width: 138px;
+            height: 138px;
+            border-radius: 50%;
             border: 2px solid rgba(255, 215, 0, 0.8);
             background: linear-gradient(180deg, #FFD700, #c99600);
             color: #1a1a2e;
-            font-size: 1.05em;
+            font-size: 1em;
             font-weight: bold;
             letter-spacing: 0.4px;
             box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
@@ -312,6 +312,9 @@
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .touch-jump:active {
@@ -639,8 +642,6 @@
                 <div class="overlay-subtitle">Miembro rescatado. Continúa cuando quieras.</div>
                 <button id="nextLevelButton" class="overlay-button secondary">PASAR AL SIGUIENTE NIVEL</button>
             </div>
-        </div>
-
             <div class="touch-controls" aria-label="Controles táctiles">
                 <div id="touchPad" class="touch-pad-shell" data-direction="center" role="button" aria-label="Touchpad de movimiento horizontal">
                     <div class="touch-pad-axis" aria-hidden="true"></div>
@@ -648,6 +649,7 @@
                 </div>
                 <button id="touchJumpButton" class="touch-jump" type="button" aria-label="Saltar">SALTAR</button>
             </div>
+        </div>
         
         <div id="message"></div>
 
