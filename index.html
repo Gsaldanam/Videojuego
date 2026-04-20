@@ -237,43 +237,85 @@
 
         .touch-controls {
             display: none;
-            width: min(1000px, calc(100vw - 24px));
-            margin: 14px auto 0;
-            gap: 10px;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            position: absolute;
+            inset: 0;
+            z-index: 14;
+            pointer-events: none;
         }
 
-        .touch-button {
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
-            color: #fff;
-            border-radius: 16px;
-            padding: 16px 10px;
-            font-size: 1.05em;
-            font-weight: bold;
-            min-height: 62px;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
-            cursor: pointer;
+        .touch-pad-shell {
+            position: absolute;
+            left: 14px;
+            bottom: 14px;
+            width: 138px;
+            height: 138px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
+            backdrop-filter: blur(5px);
+            pointer-events: auto;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
         }
 
-        .touch-button:active {
-            transform: translateY(1px);
-            background: linear-gradient(180deg, rgba(255, 215, 0, 0.22), rgba(255, 215, 0, 0.12));
-            border-color: rgba(255, 215, 0, 0.65);
+        .touch-pad-shell[data-direction="left"] {
+            border-color: rgba(66, 202, 255, 0.92);
+            box-shadow: 0 0 18px rgba(66, 202, 255, 0.42);
         }
 
-        .touch-button.primary {
-            background: linear-gradient(180deg, #FFD700, #d4a800);
+        .touch-pad-shell[data-direction="right"] {
+            border-color: rgba(255, 215, 0, 0.95);
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.45);
+        }
+
+        .touch-pad-axis {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 90px;
+            height: 2px;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .touch-pad-thumb {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle at 30% 30%, #fff8bd, #f2b500);
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.34);
+            transition: transform 0.06s linear;
+        }
+
+        .touch-jump {
+            position: absolute;
+            right: 16px;
+            bottom: 20px;
+            min-width: 126px;
+            min-height: 78px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.8);
+            background: linear-gradient(180deg, #FFD700, #c99600);
             color: #1a1a2e;
-            border-color: rgba(255, 215, 0, 0.85);
+            font-size: 1.05em;
+            font-weight: bold;
+            letter-spacing: 0.4px;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+            pointer-events: auto;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        .touch-button.secondary {
-            background: linear-gradient(180deg, #4CAF50, #2e7d32);
-            border-color: rgba(76, 175, 80, 0.9);
+        .touch-jump:active {
+            transform: translateY(1px);
         }
 
         .controls h3 {
@@ -499,7 +541,7 @@
 
         @media (pointer: coarse), (max-width: 760px) {
             .touch-controls {
-                display: grid;
+                display: block;
             }
 
             .controls {
@@ -599,12 +641,13 @@
             </div>
         </div>
 
-        <div class="touch-controls" aria-label="Controles táctiles">
-            <button id="touchLeftButton" class="touch-button" type="button" aria-label="Mover a la izquierda">◀</button>
-            <button id="touchJumpButton" class="touch-button primary" type="button" aria-label="Saltar">SALTAR</button>
-            <button id="touchRightButton" class="touch-button" type="button" aria-label="Mover a la derecha">▶</button>
-            <button id="touchPauseButton" class="touch-button secondary" type="button" aria-label="Pausar">PAUSA</button>
-        </div>
+            <div class="touch-controls" aria-label="Controles táctiles">
+                <div id="touchPad" class="touch-pad-shell" data-direction="center" role="button" aria-label="Touchpad de movimiento horizontal">
+                    <div class="touch-pad-axis" aria-hidden="true"></div>
+                    <div id="touchPadThumb" class="touch-pad-thumb" aria-hidden="true"></div>
+                </div>
+                <button id="touchJumpButton" class="touch-jump" type="button" aria-label="Saltar">SALTAR</button>
+            </div>
         
         <div id="message"></div>
 
@@ -613,7 +656,7 @@
             <p><span class="key">←</span> <span class="key">→</span> Mover</p>
             <p><span class="key">ESPACIO</span> Saltar</p>
             <p><span class="key">ESC</span> Pausa / reanudar</p>
-            <p style="margin-top: 12px; font-size: 0.88em;">📱 En celular usa los botones táctiles debajo del juego</p>
+            <p style="margin-top: 12px; font-size: 0.88em;">📱 En celular usa el touchpad (abajo izquierda) y SALTAR (abajo derecha)</p>
             <p style="margin-top: 15px; font-size: 0.85em;">💡 Recoge monedas, evita enemigos y llega a la meta en cada nivel</p>
         </div>
 
@@ -645,6 +688,6 @@
         window.BTS_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4dGh4em5ydXVnYnpqeXhvYXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzU0NzksImV4cCI6MjA5MTk1MTQ3OX0.eY8AxMoXOiIIW_6zEwhX9SGKX_hSYQgWS52_PtWlaNc';
         window.BTS_LEADERBOARD_API = '';
     </script>
-    <script src="game.js?v=20260419a"></script>
+    <script src="game.js?v=20260420a"></script>
 </body>
 </html>

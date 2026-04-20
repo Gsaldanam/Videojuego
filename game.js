@@ -24,6 +24,7 @@ const touchControls = {
     right: false,
     jump: false
 };
+let resetTouchpadVisualState = null;
 let spriteManager;
 
 function isControlActive(controlName, keyboardKeys = []) {
@@ -38,6 +39,10 @@ function clearTouchControls() {
     touchControls.left = false;
     touchControls.right = false;
     touchControls.jump = false;
+
+    if (typeof resetTouchpadVisualState === 'function') {
+        resetTouchpadVisualState();
+    }
 }
 
 class TiledSpriteManager {
@@ -2815,10 +2820,113 @@ window.addEventListener('load', () => {
     const resumeButton = document.getElementById('resumeButton');
     const volumeButton = document.getElementById('volumeButton');
     const modeButton = document.getElementById('modeButton');
-    const touchLeftButton = document.getElementById('touchLeftButton');
-    const touchRightButton = document.getElementById('touchRightButton');
+    const touchPad = document.getElementById('touchPad');
+    const touchPadThumb = document.getElementById('touchPadThumb');
     const touchJumpButton = document.getElementById('touchJumpButton');
-    const touchPauseButton = document.getElementById('touchPauseButton');
+    let touchPadPointerId = null;
+
+    const TOUCHPAD_MAX_OFFSET = 36;
+    const TOUCHPAD_DEAD_ZONE = 14;
+
+    const resetTouchPadState = () => {
+        touchControls.left = false;
+        touchControls.right = false;
+        touchPadPointerId = null;
+
+        if (touchPadThumb) {
+            touchPadThumb.style.transform = 'translate(-50%, -50%)';
+        }
+
+        if (touchPad) {
+            touchPad.dataset.direction = 'center';
+        }
+    };
+
+    resetTouchpadVisualState = () => {
+        touchPadPointerId = null;
+
+        if (touchPadThumb) {
+            touchPadThumb.style.transform = 'translate(-50%, -50%)';
+        }
+
+        if (touchPad) {
+            touchPad.dataset.direction = 'center';
+        }
+    };
+
+    const updateTouchPad = (clientX) => {
+        if (!touchPad) return;
+
+        const rect = touchPad.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const deltaX = clientX - centerX;
+        const clampedX = Math.max(-TOUCHPAD_MAX_OFFSET, Math.min(TOUCHPAD_MAX_OFFSET, deltaX));
+
+        if (touchPadThumb) {
+            touchPadThumb.style.transform = `translate(calc(-50% + ${clampedX}px), -50%)`;
+        }
+
+        if (deltaX <= -TOUCHPAD_DEAD_ZONE) {
+            touchControls.left = true;
+            touchControls.right = false;
+            touchPad.dataset.direction = 'left';
+        } else if (deltaX >= TOUCHPAD_DEAD_ZONE) {
+            touchControls.left = false;
+            touchControls.right = true;
+            touchPad.dataset.direction = 'right';
+        } else {
+            touchControls.left = false;
+            touchControls.right = false;
+            touchPad.dataset.direction = 'center';
+        }
+    };
+
+    if (touchPad) {
+        const startTouchPad = (event) => {
+            event.preventDefault();
+            if (touchPadPointerId !== null && touchPadPointerId !== event.pointerId) return;
+
+            touchPadPointerId = event.pointerId;
+            touchPad.setPointerCapture(event.pointerId);
+            updateTouchPad(event.clientX);
+        };
+
+        const moveTouchPad = (event) => {
+            if (touchPadPointerId !== event.pointerId) return;
+            event.preventDefault();
+            updateTouchPad(event.clientX);
+        };
+
+        const endTouchPad = (event) => {
+            if (touchPadPointerId !== event.pointerId) return;
+            event.preventDefault();
+
+            if (touchPad.hasPointerCapture(event.pointerId)) {
+                touchPad.releasePointerCapture(event.pointerId);
+            }
+
+            resetTouchPadState();
+        };
+
+        touchPad.addEventListener('pointerdown', startTouchPad);
+        touchPad.addEventListener('pointermove', moveTouchPad);
+        touchPad.addEventListener('pointerup', endTouchPad);
+        touchPad.addEventListener('pointercancel', endTouchPad);
+        touchPad.addEventListener('pointerleave', endTouchPad);
+        touchPad.addEventListener('contextmenu', (event) => event.preventDefault());
+
+        window.addEventListener('pointerup', (event) => {
+            if (touchPadPointerId === event.pointerId) {
+                resetTouchPadState();
+            }
+        });
+
+        window.addEventListener('pointercancel', (event) => {
+            if (touchPadPointerId === event.pointerId) {
+                resetTouchPadState();
+            }
+        });
+    }
 
     const bindTouchHoldButton = (button, controlName) => {
         if (!button) return;
@@ -2840,21 +2948,7 @@ window.addEventListener('load', () => {
         button.addEventListener('contextmenu', (event) => event.preventDefault());
     };
 
-    bindTouchHoldButton(touchLeftButton, 'left');
-    bindTouchHoldButton(touchRightButton, 'right');
     bindTouchHoldButton(touchJumpButton, 'jump');
-
-    if (touchPauseButton) {
-        touchPauseButton.addEventListener('pointerup', (event) => {
-            event.preventDefault();
-            clearTouchControls();
-            if (game && (game.state === 'playing' || game.state === 'paused')) {
-                game.togglePause();
-            }
-        });
-
-        touchPauseButton.addEventListener('contextmenu', (event) => event.preventDefault());
-    }
 
     if (saveNameButton) saveNameButton.addEventListener('click', () => game.submitWinnerName());
     if (playButton) playButton.addEventListener('click', () => game.startGame());
