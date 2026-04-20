@@ -19,7 +19,26 @@ const FPS = 60;
 // Variables globales
 let game;
 let keys = {};
+const touchControls = {
+    left: false,
+    right: false,
+    jump: false
+};
 let spriteManager;
+
+function isControlActive(controlName, keyboardKeys = []) {
+    if (touchControls[controlName]) {
+        return true;
+    }
+
+    return keyboardKeys.some((key) => keys[key]);
+}
+
+function clearTouchControls() {
+    touchControls.left = false;
+    touchControls.right = false;
+    touchControls.jump = false;
+}
 
 class TiledSpriteManager {
     constructor() {
@@ -1109,9 +1128,9 @@ class Player {
 
     handleInput() {
         // Aceleración horizontal mejorada
-        if (keys['ArrowLeft'] || keys['a']) {
+        if (isControlActive('left', ['ArrowLeft', 'a'])) {
             this.speed = Math.max(this.speed - ACCELERATION, -this.maxSpeed);
-        } else if (keys['ArrowRight'] || keys['d']) {
+        } else if (isControlActive('right', ['ArrowRight', 'd'])) {
             this.speed = Math.min(this.speed + ACCELERATION, this.maxSpeed);
         } else {
             this.speed *= FRICTION;
@@ -1120,7 +1139,7 @@ class Player {
         this.vx = this.speed;
 
         // Jump buffering
-        if ((keys[' '] || keys['w']) && this.jumpBuffer < 4) {
+        if (isControlActive('jump', [' ', 'w']) && this.jumpBuffer < 4) {
             this.jumpBuffer++;
             if (this.jumpBuffer === 1 && this.onGround) {
                 this.vy = JUMP_POWER;
@@ -2796,6 +2815,46 @@ window.addEventListener('load', () => {
     const resumeButton = document.getElementById('resumeButton');
     const volumeButton = document.getElementById('volumeButton');
     const modeButton = document.getElementById('modeButton');
+    const touchLeftButton = document.getElementById('touchLeftButton');
+    const touchRightButton = document.getElementById('touchRightButton');
+    const touchJumpButton = document.getElementById('touchJumpButton');
+    const touchPauseButton = document.getElementById('touchPauseButton');
+
+    const bindTouchHoldButton = (button, controlName) => {
+        if (!button) return;
+
+        const press = (event) => {
+            event.preventDefault();
+            touchControls[controlName] = true;
+        };
+
+        const release = (event) => {
+            event.preventDefault();
+            touchControls[controlName] = false;
+        };
+
+        button.addEventListener('pointerdown', press);
+        button.addEventListener('pointerup', release);
+        button.addEventListener('pointercancel', release);
+        button.addEventListener('pointerleave', release);
+        button.addEventListener('contextmenu', (event) => event.preventDefault());
+    };
+
+    bindTouchHoldButton(touchLeftButton, 'left');
+    bindTouchHoldButton(touchRightButton, 'right');
+    bindTouchHoldButton(touchJumpButton, 'jump');
+
+    if (touchPauseButton) {
+        touchPauseButton.addEventListener('pointerup', (event) => {
+            event.preventDefault();
+            clearTouchControls();
+            if (game && (game.state === 'playing' || game.state === 'paused')) {
+                game.togglePause();
+            }
+        });
+
+        touchPauseButton.addEventListener('contextmenu', (event) => event.preventDefault());
+    }
 
     if (saveNameButton) saveNameButton.addEventListener('click', () => game.submitWinnerName());
     if (playButton) playButton.addEventListener('click', () => game.startGame());
@@ -2832,10 +2891,16 @@ window.addEventListener('load', () => {
     }, 12000);
 
     document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearTouchControls();
+        }
+
         if (!document.hidden) {
             game.refreshLeaderboards();
         }
     });
+
+    window.addEventListener('blur', clearTouchControls);
 
     requestAnimationFrame(gameLoop);
 });
